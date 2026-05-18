@@ -1,7 +1,7 @@
 import os
 
 _SYSTEM_PROMPT_PATH = os.path.join(
-    os.path.dirname(os.path.dirname(__file__)),
+    os.path.dirname(os.path.dirname(os.path.dirname(__file__))),
     "system_prompt",
     "telegram_formatting.txt",
 )
