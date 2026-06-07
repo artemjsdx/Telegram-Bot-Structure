@@ -1,0 +1,14 @@
+/storage/emulated/0/Цхранилище/Project/FavoriteStructure/bot/handlers/setup.py:225: PTBUserWarning: If 'per_message=False', 'CallbackQueryHandler' will not be tracked for every message. Read this FAQ entry to learn more about the per_* settings: https://github.com/python-telegram-bot/python-telegram-bot/wiki/Frequently-Asked-Questions#what-do-the-per_-settings-in-conversationhandler-do.
+  return ConversationHandler(
+/storage/emulated/0/Цхранилище/Project/FavoriteStructure/bot/handlers/settings.py:192: PTBUserWarning: If 'per_message=False', 'CallbackQueryHandler' will not be tracked for every message. Read this FAQ entry to learn more about the per_* settings: https://github.com/python-telegram-bot/python-telegram-bot/wiki/Frequently-Asked-Questions#what-do-the-per_-settings-in-conversationhandler-do.
+  return ConversationHandler(
+2026-05-18 18:16:08,337 [INFO] __main__: Bot starting with polling...
+2026-05-18 18:16:08,589 [INFO] httpx: HTTP Request: POST https://api.telegram.org/bot8631449268:AAHviHE-TPEIGxn354XMDhK2WoUjdCi8B2U/getMe "HTTP/1.1 200 OK"
+2026-05-18 18:16:08,596 [INFO] __main__: Database initialized
+2026-05-18 18:16:08,707 [INFO] httpx: HTTP Request: POST https://api.telegram.org/bot8631449268:AAHviHE-TPEIGxn354XMDhK2WoUjdCi8B2U/setMyCommands "HTTP/1.1 200 OK"
+2026-05-18 18:16:08,709 [INFO] __main__: Commands set
+2026-05-18 18:16:08,789 [INFO] httpx: HTTP Request: POST https://api.telegram.org/bot8631449268:AAHviHE-TPEIGxn354XMDhK2WoUjdCi8B2U/deleteWebhook "HTTP/1.1 200 OK"
+2026-05-18 18:16:08,791 [INFO] telegram.ext.Application: Application started
+2026-05-18 18:16:13,344 [INFO] httpx: HTTP Request: POST https://api.telegram.org/bot8631449268:AAHviHE-TPEIGxn354XMDhK2WoUjdCi8B2U/getUpdates "HTTP/1.1 200 OK"
+2026-05-18 18:16:13,346 [INFO] telegram.ext.Application: Application is stopping. This might take a moment.
+2026-05-18 18:16:13,346 [INFO] telegram.ext.Application: Application.stop() complete
