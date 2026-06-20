@@ -44,7 +44,7 @@ from texts import t
 
 log = logging.getLogger(__name__)
 
-PID_FILE = "/data/data/com.termux/files/home/tg_bot.pid"
+PID_FILE = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "tg_bot.pid")
 
 
 # ───── single-instance guard (avoid 409 polling conflicts) ─────

@@ -1,4 +1,4 @@
-#!/data/data/com.termux/files/usr/bin/bash
+#!/usr/bin/env bash
 clear
 cd "$(dirname "$0")" || exit 1
 echo '=============================='
