@@ -36,12 +36,65 @@ TEXTS: dict[str, dict[str, str]] = {
         "start_welcome": "👋 Добро пожаловать! Давайте настроим бота.",
         "help_text": (
             "<b>❓ Помощь</b>\n\n"
-            "Бот переписывает посты в привязанных каналах через ИИ.\n\n"
-            "• <b>Провайдер</b> — выбор ИИ (FavoriteAPI / OpenRouter / FreeModel) и модели.\n"
-            "• <b>Промпт</b> — инструкция, как переписывать посты.\n"
-            "• <b>Каналы</b> — привязка каналов и переключатели.\n"
-            "• <b>Предпросмотр</b> — проверка результата в ЛС перед публикацией.\n\n"
-            "Команды: /start /menu /cancel\n\n"
+            "Бот переписывает посты в ваших каналах через ИИ. Вы создаёте «агента» — связку "
+            "ИИ + стиль — и привязываете к нему канал. Каждый новый пост канала бот "
+            "автоматически переписывает в заданном стиле.\n\n"
+
+            "<b>🏠 Главный экран — агенты</b>\n"
+            "Это список ваших агентов. <b>🤖 Имя</b> — открыть карточку агента. "
+            "<b>➕ Создать агента</b> — мастер настройки.\n"
+            "Агент = провайдер ИИ + ключ + модель + промпт (стиль) + привязанные каналы. "
+            "Можно держать несколько агентов под разные каналы и стили.\n\n"
+
+            "<b>🛠 Создание агента (мастер)</b>\n"
+            "По шагам: имя → провайдер → API-ключ → модель → промпт → сис.промпт → канал. "
+            "На каждом шаге есть подсказка; <b>/cancel</b> прерывает мастер.\n\n"
+
+            "<b>🗂 Карточка агента</b>\n"
+            "• <b>✏️ Имя</b> — переименовать.\n"
+            "• <b>🤖 Провайдер</b> / <b>🔑 Ключ</b> / <b>📚 Модель</b> — какой ИИ и под каким "
+            "ключом работает агент.\n"
+            "• <b>✏️ Промпт</b> — инструкция, КАК переписывать пост (стиль, структура, "
+            "форматирование).\n"
+            "• <b>🎨 Сис.промпт</b> — передавать промпт как «системный». Обычно ВКЛ: модель "
+            "строже держит стиль.\n"
+            "• <b>📣 Каналы</b> — привязать/отвязать каналы агента.\n"
+            "• <b>🗑 Удалить</b> — удалить агента.\n\n"
+
+            "<b>✏️ Промпт и библиотека пресетов</b>\n"
+            "Промпт — самое важное, именно он задаёт стиль. В библиотеке: <b>⭐</b> — ваши "
+            "пресеты, <b>📄</b> — готовые. <b>➕ Создать</b> — ввести свой вручную.\n"
+            "<b>🔮 Из поста</b> — ИИ сам соберёт промпт по вашим постам:\n"
+            "1. Перешлите от 1 до 20 реальных постов канала (можно пачкой). Чем больше — тем "
+            "точнее ИИ поймёт стиль.\n"
+            "2. Нажмите <b>⚡️ Создать промпт</b> и выберите режим:\n"
+            "  ▫️ <b>🎭 Характер:</b> <b>Единый</b> — один общий стиль на все посты; "
+            "<b>🎬 Сценарии</b> — разные правила под разные типы постов плюс стиль по "
+            "умолчанию (берите, если постов много и они разные).\n"
+            "  ▫️ <b>📦 Основа:</b> <b>🆕 С нуля</b> — новый промпт; <b>➕ К текущему</b> — "
+            "доработать нынешний промпт агента новыми примерами.\n"
+            "3. ИИ предложит промпт: <b>✅ Применить</b>, <b>💾 Сохранить и применить</b> "
+            "(добавит в ваши пресеты) или <b>❌ Отклонить</b>.\n\n"
+
+            "<b>📣 Каналы</b>\n"
+            "Привязка: перешлите в бота любой пост из нужного канала. Бот должен быть "
+            "<b>администратором</b> этого канала. ⏹ рядом с каналом — отвязать.\n\n"
+
+            "<b>🤖 Провайдер</b>\n"
+            "Выбор ИИ-сервиса (⭐ FavoriteAPI / 🔀 OpenRouter / 🆓 FreeModel) и модели. "
+            "<b>🧪 Тест</b> — проверить ключ, <b>🔑 Ключ</b> / <b>🌐 База</b> / "
+            "<b>📚 Модель</b> — параметры доступа.\n\n"
+
+            "<b>⚙️ Настройки</b>\n"
+            "• <b>🎨 Сис.промпт</b> — как промпт передаётся модели.\n"
+            "• <b>👁 Предпросмотр</b> — если ВКЛ, переписанный пост сначала приходит вам в ЛС "
+            "на проверку и публикуется только после подтверждения.\n"
+            "• <b>🌐 Язык</b>, <b>🗑 Сбросить статистику</b>.\n\n"
+
+            "<b>📊 Статистика</b> — сколько постов переписано и расход по запросам.\n\n"
+
+            "<b>Команды:</b> /start — запуск, /menu — главный экран, /help — эта справка, "
+            "/cancel — отменить текущий шаг.\n\n"
             "🆘 Поддержка / владелец: {support}"
         ),
 
@@ -118,7 +171,7 @@ TEXTS: dict[str, dict[str, str]] = {
         # --- AI preset suggestion from a forwarded post ---
         "preset_fwd_howto": (
             "🔮 <b>Пресет из постов</b>\n\n"
-            "Перешлите сюда от 1 до 10 постов канала (можно сразу несколько за раз). "
+            "Перешлите сюда от 1 до 20 постов канала (можно сразу несколько за раз). "
             "Чем больше реальных постов — тем точнее ИИ поймёт ваш стиль.\n\n"
             "После каждого поста я покажу, сколько принято. Когда хватит — нажмите "
             "«⚡️ Создать промпт». ИИ разберёт структуру, форматирование (жирный, курсив, "
@@ -138,6 +191,39 @@ TEXTS: dict[str, dict[str, str]] = {
         ),
         "preset_collect_gen_btn": "⚡️ Создать промпт",
         "preset_collect_empty": "Сначала перешлите хотя бы один пост.",
+        # --- AI generation mode picker (two toggles) ---
+        "preset_mode_char_unified": "🎭 Единый",
+        "preset_mode_char_scenarios": "🎬 Сценарии",
+        "preset_mode_base_scratch": "🆕 С нуля",
+        "preset_mode_base_extend": "➕ К текущему",
+        "preset_mode_gen_btn": "⚡️ Сгенерировать",
+        "preset_mode_no_current": (
+            "\n\n⚠️ У агента ещё нет промпта, поэтому «➕ К текущему» недоступно — "
+            "пресет будет создан с нуля."
+        ),
+        "preset_mode_no_current_toast": "У агента ещё нет промпта — дополнять нечего, выбран режим «С нуля».",
+        "preset_mode_title": (
+            "⚙️ <b>Настройка генерации</b>\n"
+            "Собрано постов: <b>{n}</b>. Выберите, как ИИ соберёт пресет.\n\n"
+            "<b>🎭 Характер</b> — насколько единым будет стиль:\n"
+            "• <b>🎭 Единый</b> — ИИ найдёт одну общую форму подачи и опишет её как цельный "
+            "стиль. Все посты будут оформляться одинаково. Лучше всего, когда канал ведётся "
+            "в одном узнаваемом стиле.\n"
+            "• <b>🎬 Сценарии</b> — ИИ заметит, что посты бывают РАЗНЫЕ (новость, рассуждение, "
+            "реклама, анонс…), и пропишет правила «если пост такой — оформляй так», плюс стиль "
+            "по умолчанию. Лучше всего, когда вы прислали много постов РАЗНЫХ типов.\n\n"
+            "<b>📦 Основа</b> — с чего начинать:\n"
+            "• <b>🆕 С нуля</b> — ИИ напишет новый пресет, не оглядываясь на текущий. Берите для "
+            "нового агента или когда хотите полностью обновить стиль.\n"
+            "• <b>➕ К текущему</b> — ИИ возьмёт нынешний промпт агента за основу и аккуратно "
+            "дополнит его новыми примерами, сохранив удачное. Берите, когда стиль уже почти "
+            "нравится и его надо лишь докрутить.\n\n"
+            "💡 <b>Совет.</b> Для самого точного результата: прислали 10+ постов разных типов — "
+            "берите <b>🎬 Сценарии</b>; стиль ровный и однотипный — <b>🎭 Единый</b>. "
+            "Настраиваете агента впервые — <b>🆕 С нуля</b>; шлифуете рабочий промпт — "
+            "<b>➕ К текущему</b>.{note}\n\n"
+            "Когда выберете — нажмите «⚡️ Сгенерировать»."
+        ),
         "preset_analyzing": "🔮 Анализирую пост… это займёт несколько секунд.",
         "preset_analyzing_n": "🔮 Анализирую посты ({n})… это займёт несколько секунд.",
         "preset_suggested_title": (
@@ -341,12 +427,66 @@ TEXTS: dict[str, dict[str, str]] = {
         "start_welcome": "👋 Welcome! Let's set up the bot.",
         "help_text": (
             "<b>❓ Help</b>\n\n"
-            "The bot rewrites posts in linked channels with AI.\n\n"
-            "• <b>Provider</b> — pick the AI (FavoriteAPI / OpenRouter / FreeModel) and model.\n"
-            "• <b>Prompt</b> — how to rewrite posts.\n"
-            "• <b>Channels</b> — link channels and toggles.\n"
-            "• <b>Preview</b> — check the result in DM before publishing.\n\n"
-            "Commands: /start /menu /cancel\n\n"
+            "The bot rewrites your channel posts with AI. You create an “agent” — an "
+            "AI + style bundle — and link a channel to it. Every new post in that channel "
+            "is automatically rewritten in the chosen style.\n\n"
+
+            "<b>🏠 Home screen — agents</b>\n"
+            "A list of your agents. <b>🤖 Name</b> opens the agent card. "
+            "<b>➕ Create agent</b> starts the setup wizard.\n"
+            "An agent = AI provider + key + model + prompt (style) + linked channels. "
+            "You can keep several agents for different channels and styles.\n\n"
+
+            "<b>🛠 Creating an agent (wizard)</b>\n"
+            "Step by step: name → provider → API key → model → prompt → system prompt → "
+            "channel. Each step has a hint; <b>/cancel</b> aborts the wizard.\n\n"
+
+            "<b>🗂 Agent card</b>\n"
+            "• <b>✏️ Name</b> — rename.\n"
+            "• <b>🤖 Provider</b> / <b>🔑 Key</b> / <b>📚 Model</b> — which AI runs the agent "
+            "and with which key.\n"
+            "• <b>✏️ Prompt</b> — the instruction for HOW to rewrite a post (style, "
+            "structure, formatting).\n"
+            "• <b>🎨 System prompt</b> — send the prompt as a “system” one. Usually ON: the "
+            "model keeps the style more strictly.\n"
+            "• <b>📣 Channels</b> — link/unlink the agent's channels.\n"
+            "• <b>🗑 Delete</b> — remove the agent.\n\n"
+
+            "<b>✏️ Prompt and preset library</b>\n"
+            "The prompt is the most important part — it sets the style. In the library: "
+            "<b>⭐</b> — your presets, <b>📄</b> — ready-made. <b>➕ Create</b> — enter your "
+            "own manually.\n"
+            "<b>🔮 From posts</b> — the AI builds a prompt from your posts:\n"
+            "1. Forward 1 to 20 real channel posts (a batch is fine). The more, the better "
+            "the AI captures the style.\n"
+            "2. Tap <b>⚡️ Generate prompt</b> and choose the mode:\n"
+            "  ▫️ <b>🎭 Character:</b> <b>Unified</b> — one common style for all posts; "
+            "<b>🎬 Scenarios</b> — different rules for different post types plus a default "
+            "style (use it when you sent many, varied posts).\n"
+            "  ▫️ <b>📦 Base:</b> <b>🆕 From scratch</b> — a new prompt; <b>➕ Extend "
+            "current</b> — refine the agent's current prompt with new examples.\n"
+            "3. The AI suggests a prompt: <b>✅ Apply</b>, <b>💾 Save &amp; apply</b> "
+            "(adds it to your presets) or <b>❌ Discard</b>.\n\n"
+
+            "<b>📣 Channels</b>\n"
+            "To link: forward any post from the channel to the bot. The bot must be an "
+            "<b>administrator</b> of that channel. ⏹ next to a channel unlinks it.\n\n"
+
+            "<b>🤖 Provider</b>\n"
+            "Pick the AI service (⭐ FavoriteAPI / 🔀 OpenRouter / 🆓 FreeModel) and model. "
+            "<b>🧪 Test</b> checks the key; <b>🔑 Key</b> / <b>🌐 Base</b> / <b>📚 Model</b> "
+            "are access settings.\n\n"
+
+            "<b>⚙️ Settings</b>\n"
+            "• <b>🎨 System prompt</b> — how the prompt is passed to the model.\n"
+            "• <b>👁 Preview</b> — when ON, the rewritten post first arrives in your DM for "
+            "review and is published only after you confirm.\n"
+            "• <b>🌐 Language</b>, <b>🗑 Reset stats</b>.\n\n"
+
+            "<b>📊 Stats</b> — how many posts were rewritten and request usage.\n\n"
+
+            "<b>Commands:</b> /start — launch, /menu — home screen, /help — this help, "
+            "/cancel — cancel the current step.\n\n"
             "🆘 Support / owner: {support}"
         ),
 
@@ -420,7 +560,7 @@ TEXTS: dict[str, dict[str, str]] = {
         # --- AI preset suggestion from a forwarded post ---
         "preset_fwd_howto": (
             "🔮 <b>Preset from posts</b>\n\n"
-            "Forward 1 to 10 channel posts here (you can send several at once). "
+            "Forward 1 to 20 channel posts here (you can send several at once). "
             "The more real posts, the better the AI captures your style.\n\n"
             "After each post I'll show how many were collected. When you're ready, tap "
             "“⚡️ Generate prompt”. The AI will analyze the structure, formatting (bold, "
@@ -440,6 +580,39 @@ TEXTS: dict[str, dict[str, str]] = {
         ),
         "preset_collect_gen_btn": "⚡️ Generate prompt",
         "preset_collect_empty": "Forward at least one post first.",
+        # --- AI generation mode picker (two toggles) ---
+        "preset_mode_char_unified": "🎭 Unified",
+        "preset_mode_char_scenarios": "🎬 Scenarios",
+        "preset_mode_base_scratch": "🆕 From scratch",
+        "preset_mode_base_extend": "➕ Extend current",
+        "preset_mode_gen_btn": "⚡️ Generate",
+        "preset_mode_no_current": (
+            "\n\n⚠️ The agent has no prompt yet, so “➕ Extend current” is unavailable — "
+            "the preset will be built from scratch."
+        ),
+        "preset_mode_no_current_toast": "The agent has no prompt yet — nothing to extend, “From scratch” selected.",
+        "preset_mode_title": (
+            "⚙️ <b>Generation setup</b>\n"
+            "Posts collected: <b>{n}</b>. Choose how the AI builds the preset.\n\n"
+            "<b>🎭 Character</b> — how unified the style is:\n"
+            "• <b>🎭 Unified</b> — the AI finds one common form and describes it as a single "
+            "style. Every post is formatted the same way. Best when the channel has one "
+            "recognizable style.\n"
+            "• <b>🎬 Scenarios</b> — the AI notices that posts DIFFER (news, reflection, ad, "
+            "announcement…) and writes “if the post is like this — format it that way” rules "
+            "plus a default style. Best when you sent many posts of DIFFERENT types.\n\n"
+            "<b>📦 Base</b> — where to start:\n"
+            "• <b>🆕 From scratch</b> — the AI writes a new preset ignoring the current one. "
+            "Use for a new agent or a full style refresh.\n"
+            "• <b>➕ Extend current</b> — the AI takes the agent's current prompt as a base and "
+            "carefully extends it with new examples, keeping what works. Use when the style is "
+            "almost right and only needs polishing.\n\n"
+            "💡 <b>Tip.</b> For the most accurate result: 10+ posts of different types — pick "
+            "<b>🎬 Scenarios</b>; a steady, uniform style — <b>🎭 Unified</b>. Setting up an "
+            "agent for the first time — <b>🆕 From scratch</b>; polishing a working prompt — "
+            "<b>➕ Extend current</b>.{note}\n\n"
+            "When ready, tap “⚡️ Generate”."
+        ),
         "preset_analyzing": "🔮 Analyzing the post… this takes a few seconds.",
         "preset_analyzing_n": "🔮 Analyzing posts ({n})… this takes a few seconds.",
         "preset_suggested_title": (

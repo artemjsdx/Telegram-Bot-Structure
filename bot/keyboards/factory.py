@@ -270,6 +270,32 @@ def preset_collect_kb(n: int = 0, lang: str = "ru") -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(rows)
 
 
+def preset_mode_kb(char: str = "unified", base: str = "scratch",
+                   lang: str = "ru") -> InlineKeyboardMarkup:
+    """
+    Two-toggle picker before AI generation:
+      • Character: 🎭 unified / 🎬 scenarios
+      • Base:      🆕 scratch / ➕ extend (refine the agent's current prompt)
+    The active option in each row is marked with ✅.
+    """
+    return InlineKeyboardMarkup([
+        [InlineKeyboardButton(
+            ("✅ " if char == "unified" else "") + t(lang, "preset_mode_char_unified"),
+            callback_data="apreset:mchar:unified"),
+         InlineKeyboardButton(
+            ("✅ " if char == "scenarios" else "") + t(lang, "preset_mode_char_scenarios"),
+            callback_data="apreset:mchar:scenarios")],
+        [InlineKeyboardButton(
+            ("✅ " if base == "scratch" else "") + t(lang, "preset_mode_base_scratch"),
+            callback_data="apreset:mbase:scratch"),
+         InlineKeyboardButton(
+            ("✅ " if base == "extend" else "") + t(lang, "preset_mode_base_extend"),
+            callback_data="apreset:mbase:extend")],
+        [InlineKeyboardButton(t(lang, "preset_mode_gen_btn"), callback_data="apreset:gendo")],
+        [InlineKeyboardButton(t(lang, "btn_cancel"), callback_data="apreset:fwdcancel")],
+    ])
+
+
 # ───── Channels ─────
 def channels_kb(channels: list[dict], active_id: int | None, lang: str = "ru") -> InlineKeyboardMarkup:
     rows = []
