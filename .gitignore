@@ -1,0 +1,8 @@
+__pycache__/
+*.pyc
+.env
+*.log
+data/bot.db
+data/bot.db.bak
+data/bot.db.predeploy.bak
+nohup_start.log

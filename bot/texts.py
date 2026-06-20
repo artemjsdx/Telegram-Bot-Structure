@@ -1,0 +1,629 @@
+"""
+i18n strings (ru/en) and the t() helper.
+Usage:  from texts import t;  t(lang, "menu_title")
+Missing key in a language falls back to ru, then to the key name itself.
+"""
+from __future__ import annotations
+
+from config import DEFAULT_LANG
+
+TEXTS: dict[str, dict[str, str]] = {
+    "ru": {
+        # --- common ---
+        "btn_back": "◀️ Назад",
+        "btn_home": "🏠 Меню",
+        "btn_cancel": "✖️ Отмена",
+        "btn_yes": "✅ Да",
+        "btn_no": "❌ Нет",
+        "cancelled": "Отменено.",
+        "loading": "⏳ Обрабатываю…",
+        "error_generic": "⚠️ Что-то пошло не так. Попробуйте ещё раз.",
+        "banned_msg": "🚫 Доступ к боту ограничен.",
+        "admin_only": "🚫 Раздел доступен только администраторам.",
+        "post_failed_dm": "⚠️ Не удалось структурировать пост в «{channel}».\nПричина: {error}",
+
+        # --- main menu ---
+        "menu_title": "<b>🤖 Channel AI Bot</b>\n\nПереписываю посты в ваших каналах через ИИ.\nВыберите раздел:",
+        "menu_settings": "⚙️ Настройки",
+        "menu_channels": "📣 Каналы",
+        "menu_stats": "📊 Статистика",
+        "menu_provider": "🤖 Провайдер",
+        "menu_prompt": "✏️ Промпт",
+        "menu_help": "❓ Помощь",
+        "menu_admin": "🛠 Админка",
+
+        # --- start / help ---
+        "start_welcome": "👋 Добро пожаловать! Давайте настроим бота.",
+        "help_text": (
+            "<b>❓ Помощь</b>\n\n"
+            "Бот переписывает посты в привязанных каналах через ИИ.\n\n"
+            "• <b>Провайдер</b> — выбор ИИ (FavoriteAPI / OpenRouter / FreeModel) и модели.\n"
+            "• <b>Промпт</b> — инструкция, как переписывать посты.\n"
+            "• <b>Каналы</b> — привязка каналов и переключатели.\n"
+            "• <b>Предпросмотр</b> — проверка результата в ЛС перед публикацией.\n\n"
+            "Команды: /start /menu /cancel\n\n"
+            "🆘 Поддержка / владелец: {support}"
+        ),
+
+        # --- settings ---
+        "settings_title": "<b>⚙️ Настройки</b>",
+        "settings_lang": "🌐 Язык: {code}",
+        "settings_preview_on": "👁 Предпросмотр: ВКЛ",
+        "settings_preview_off": "👁 Предпросмотр: ВЫКЛ",
+        "settings_sys_on": "🎨 Сис.промпт: ВКЛ",
+        "settings_sys_off": "🎨 Сис.промпт: ВЫКЛ",
+        "settings_reset_ctx": "♻️ Сбросить контекст",
+        "settings_reset_stats": "🗑 Сбросить статистику",
+        "settings_saved": "✅ Сохранено.",
+        "settings_ctx_reset": "♻️ Контекст сброшен.",
+        "settings_stats_reset": "🗑 Статистика сброшена.",
+
+        # --- provider ---
+        "provider_title": "<b>🤖 Провайдер</b>\n\nАктивный: <b>{active}</b>\nВыберите провайдера:",
+        "provider_test": "🧪 Тест соединения",
+        "provider_set_key": "🔑 Сменить ключ",
+        "provider_set_base": "🌐 Сменить базу",
+        "provider_set_model": "📚 Сменить модель",
+        "provider_switched": "✅ Активный провайдер: <b>{name}</b>",
+        "provider_need_creds": "🔑 Для <b>{name}</b> нет сохранённых ключей. Введите ключ:",
+        "provider_test_ok": "✅ Соединение успешно.\n{info}",
+        "provider_test_fail": "❌ Ошибка соединения:\n{error}",
+        "provider_enter_base": "🌐 Введите базовый URL API:",
+        "provider_enter_key": "🔑 Введите API-ключ:",
+        "provider_verifying": "⏳ Проверяю ключ…",
+        "provider_key_ok": "✅ Ключ принят.",
+        "provider_key_fail": "❌ Ключ не прошёл проверку:\n{error}",
+        "provider_choose_model": "📚 Выберите модель:",
+        "provider_model_set": "✅ Модель: <code>{model}</code>",
+        "provider_freemodel_warn": "ℹ️ FreeModel: бесплатные GPT-модели (gpt-5.4-mini и др.). Есть дневной лимит запросов.",
+
+        # --- prompt ---
+        "prompt_title": "<b>✏️ Промпт</b>",
+        "prompt_current": "Текущий промпт:\n<blockquote>{prompt}</blockquote>",
+        "prompt_empty": "Промпт не задан.",
+        "prompt_view": "👁 Показать",
+        "prompt_edit": "✏️ Изменить",
+        "prompt_presets": "📚 Пресеты",
+        "prompt_enter": "✏️ Пришлите новый промпт текстом:",
+        "prompt_saved": "✅ Промпт сохранён.",
+        "prompt_presets_title": "📚 Выберите пресет:",
+        "prompt_preset_applied": "✅ Пресет применён.",
+        "preset_lib_btn": "📚 Библиотека пресетов",
+        "preset_lib_title": (
+            "📚 <b>Библиотека пресетов</b>\n\n"
+            "⭐ — ваши пресеты (вверху), 📄 — готовые.\n"
+            "Тапните пресет, чтобы посмотреть и применить его к агенту.\n\n"
+            "➕ <b>Создать</b> — добавить свой пресет вручную.\n"
+            "🔮 <b>Из поста</b> — перешлите пост, и ИИ соберёт пресет по его структуре, "
+            "форматированию и стилю."
+        ),
+        "preset_detail": "📄 <b>{name}</b>\n\n{body}",
+        "preset_apply": "✅ Применить пресет",
+        "preset_back": "◀️ К списку пресетов",
+        # --- user presets (create / delete) ---
+        "preset_new_btn": "➕ Создать",
+        "preset_fwd_btn": "🔮 Из поста",
+        "preset_new_name": (
+            "✏️ <b>Новый пресет</b>\n\n"
+            "Пришлите <b>название</b> пресета (коротко, например «Деловой стиль»)."
+        ),
+        "preset_new_body": (
+            "📝 Теперь пришлите <b>текст пресета</b> — инструкцию для ИИ: как переписывать посты "
+            "(структура, тон, форматирование и т.д.)."
+        ),
+        "preset_created": "✅ Пресет «{name}» сохранён и добавлен в избранное (вверху списка).",
+        "preset_delete_btn": "🗑 Удалить пресет",
+        "preset_delete_confirm": "🗑 Удалить пресет «{name}»? Действие необратимо.",
+        "preset_deleted": "🗑 Пресет удалён.",
+        # --- AI preset suggestion from a forwarded post ---
+        "preset_fwd_howto": (
+            "🔮 <b>Пресет из постов</b>\n\n"
+            "Перешлите сюда от 1 до 10 постов канала (можно сразу несколько за раз). "
+            "Чем больше реальных постов — тем точнее ИИ поймёт ваш стиль.\n\n"
+            "После каждого поста я покажу, сколько принято. Когда хватит — нажмите "
+            "«⚡️ Создать промпт». ИИ разберёт структуру, форматирование (жирный, курсив, "
+            "спойлеры и т.д.) и характер, и предложит готовый пресет.\n\n"
+            "Подойдёт пост с текстом или подписью к медиа."
+        ),
+        "preset_fwd_no_text": (
+            "⚠️ В этом посте нет текста для анализа — пропускаю. Перешлите пост с текстом или подписью."
+        ),
+        "preset_collect_count": (
+            "📥 Принято постов: <b>{n}/{max}</b>.\n\n"
+            "Перешлите ещё (можно сразу несколько) или нажмите «⚡️ Создать промпт»."
+        ),
+        "preset_collect_capped": (
+            "📥 Набрано максимум — <b>{max}</b> постов. Лишние не добавляю.\n\n"
+            "Нажмите «⚡️ Создать промпт» или отмените."
+        ),
+        "preset_collect_gen_btn": "⚡️ Создать промпт",
+        "preset_collect_empty": "Сначала перешлите хотя бы один пост.",
+        "preset_analyzing": "🔮 Анализирую пост… это займёт несколько секунд.",
+        "preset_analyzing_n": "🔮 Анализирую посты ({n})… это займёт несколько секунд.",
+        "preset_suggested_title": (
+            "🔮 <b>Предложенный пресет</b>\n\n{body}\n\n"
+            "Примените его сразу или сохраните в избранное и примените."
+        ),
+        "preset_suggest_apply_btn": "✅ Применить",
+        "preset_suggest_save_btn": "💾 Сохранить и применить",
+        "preset_suggest_discard_btn": "❌ Отклонить",
+        "preset_suggest_save_name": (
+            "💾 Пришлите <b>название</b> для этого пресета — он сохранится в избранном и применится к агенту."
+        ),
+        "preset_suggest_discarded": "❌ Предложение отклонено.",
+        "preset_suggest_fail": (
+            "😕 Не удалось проанализировать пост: {error}\n\nПопробуйте ещё раз или создайте пресет вручную."
+        ),
+        "preset_session_stale": "⚠️ Сессия устарела (бот перезапускался). Откройте «✏️ Промпт» → библиотеку и повторите.",
+
+        # --- channels ---
+        "channels_title": "<b>📣 Каналы</b>",
+        "channels_empty": "Каналов нет. Нажмите ➕, чтобы привязать.",
+        "channel_add": "➕ Привязать канал",
+        "channel_add_howto": (
+            "➕ <b>Привязка канала</b>\n\n"
+            "Перешлите сюда любой пост из нужного канала.\n"
+            "Бот должен быть администратором канала."
+        ),
+        "channel_added": "✅ Канал «{title}» привязан.",
+        "channel_not_forwarded": "❌ Это не пересланный пост из канала. Попробуйте ещё раз.",
+        "channel_removed": "✅ Канал отвязан.",
+        "channel_confirm_remove": "Отвязать канал «{title}»?",
+        "channel_toggle_on": "▶️ Включить",
+        "channel_toggle_off": "⏸ Выключить",
+        "channel_toggled": "✅ Статус канала обновлён.",
+        "channel_set_active": "⭐ Сделать активным",
+        "channel_active_set": "✅ Активный канал обновлён.",
+        "channel_remove": "⏹ Отвязать",
+
+        # --- agents (multi-agent home + wizard + card) ---
+        "agents_title": (
+            "<b>🤖 Мои агенты</b>\n\n"
+            "Каждый агент переписывает посты в своих каналах по своему провайдеру и промпту.\n"
+            "Выберите агента или создайте нового:"
+        ),
+        "agents_empty": (
+            "<b>🤖 Мои агенты</b>\n\n"
+            "У вас пока нет агентов. Создайте первого — он будет переписывать посты в выбранных каналах."
+        ),
+        "agent_create": "➕ Создать агента",
+        "agent_card": (
+            "<b>🤖 {name}</b>\n\n"
+            "Провайдер: <b>{provider}</b>\n"
+            "Модель: <code>{model}</code>\n"
+            "Промпт: <blockquote>{prompt}</blockquote>\n"
+            "Каналы: {channels}"
+        ),
+        "agent_edit_name": "✏️ Имя",
+        "agent_edit_provider": "🤖 Провайдер",
+        "agent_edit_key": "🔑 Ключ",
+        "agent_edit_model": "📚 Модель",
+        "agent_edit_prompt": "✏️ Промпт",
+        "agent_channels": "📣 Каналы",
+        "agent_delete": "🗑 Удалить агента",
+        "agent_add_channel": "➕ Привязать канал",
+        "agent_ask_name": "✏️ <b>Новый агент</b>\n\nКак назовём агента? Пришлите имя текстом:",
+        "agent_ask_provider": "🤖 Выберите провайдера для агента:",
+        "agent_next": "Готово",
+        "agent_sys_title": (
+            "🎨 <b>Системный промпт</b>\n\n"
+            "Добавляет к вашему промпту служебные правила оформления. Включить?"
+        ),
+        "agent_bind_howto": (
+            "➕ <b>Привязка канала</b>\n\n"
+            "Перешлите сюда любой пост из нужного канала.\n"
+            "Бот должен быть администратором канала.\n"
+            "Или нажмите «Пропустить» — привяжете позже."
+        ),
+        "agent_bind_skip": "⏭ Пропустить",
+        "agent_skip_setup": "⏭ Пропустить настройку",
+        "agent_ready": "✅ Агент готов! Канал «{title}» привязан.",
+        "agent_ready_nochan": "✅ Агент готов! Канал можно привязать позже из его карточки.",
+        "agent_addchan_howto": (
+            "➕ <b>Привязка канала</b>\n\n"
+            "Перешлите сюда любой пост из нужного канала.\n"
+            "Бот должен быть администратором канала."
+        ),
+        "agent_chan_added": "✅ Канал «{title}» привязан.",
+        "agent_channels_title": "<b>📣 Каналы агента</b>\n\nНажмите ⏹, чтобы отвязать канал.",
+        "agent_channels_empty": "<b>📣 Каналы агента</b>\n\nПока ни одного канала. Нажмите ➕, чтобы привязать.",
+        "agent_confirm_delete": "Удалить агента «{name}»? Его каналы перестанут обрабатываться.",
+        "model_search": "🔎 Поиск",
+        "model_search_prompt": "🔎 Введите часть названия модели:",
+        "model_search_none": "❌ Ничего не найдено. Показываю полный список.",
+
+        # --- stats ---
+        "stats_title": "<b>📊 Статистика</b>",
+        "stats_body": (
+            "Обработано: <b>{processed}</b>\n"
+            "Ошибок: <b>{failed}</b>\n"
+            "Среднее время: <b>{avg_ms} мс</b>\n"
+            "Последняя активность: {last}"
+        ),
+        "stats_none": "Пока нет данных.",
+
+        # --- preview ---
+        "preview_caption": (
+            "<b>👁 Предпросмотр</b>\n\n"
+            "Канал: {chan}\n\n"
+            "<blockquote>{text}</blockquote>\n\n"
+            "Опубликовать?"
+        ),
+        "preview_publish": "✅ Опубликовать",
+        "preview_reject": "❌ Отклонить",
+        "preview_edit": "✏️ Правка",
+        "preview_published": "✅ Опубликовано.",
+        "preview_rejected": "❌ Отклонено.",
+        "preview_edit_prompt": (
+            "✏️ <b>Правка</b>\n\n"
+            "Текущий вариант ниже — тапните по нему, чтобы скопировать, отредактируйте и пришлите "
+            "новый текст в ответ. Можно использовать HTML-теги (&lt;b&gt;, &lt;i&gt; и т.д.).\n\n"
+            "<code>{text}</code>"
+        ),
+
+        # --- admin ---
+        "admin_title": "<b>🛠 Админ-панель</b>",
+        "admin_users": "👥 Пользователи",
+        "admin_stats": "📊 Глобальная статистика",
+        "admin_broadcast": "📢 Рассылка",
+        "admin_logs": "📜 Логи",
+        "admin_banner": "🖼 Баннер меню",
+        "admin_desc": "📝 Описание бота",
+        "admin_users_title": "<b>👥 Пользователи</b> ({count})",
+        "admin_user_ban": "🚫 Забанить",
+        "admin_user_unban": "✅ Разбанить",
+        "admin_user_banned": "🚫 Пользователь забанен.",
+        "admin_user_unbanned": "✅ Пользователь разбанен.",
+        "admin_gstats": (
+            "<b>📊 Глобальная статистика</b>\n\n"
+            "Пользователей: <b>{users}</b>\n"
+            "Обработано постов: <b>{processed}</b>\n"
+            "Ошибок: <b>{failed}</b>"
+        ),
+        "admin_broadcast_prompt": "📢 Пришлите текст рассылки:",
+        "admin_broadcast_sent": "✅ Рассылка отправлена: {ok}/{total}",
+        "admin_logs_title": "<b>📜 Последние запросы</b>",
+        "admin_logs_empty": "Логи пусты.",
+        "admin_banner_title": (
+            "<b>🖼 Баннер меню</b>\n\nТекущий: {current}\n\n"
+            "Баннер показывается над кнопками главного меню."
+        ),
+        "admin_banner_photo": "📷 Задать фото",
+        "admin_banner_video": "🎬 Задать видео",
+        "admin_banner_remove": "🗑 Убрать баннер",
+        "admin_banner_send_photo": "📷 Пришлите фото для баннера:",
+        "admin_banner_send_video": "🎬 Пришлите видео для баннера:",
+        "admin_banner_saved": "✅ Баннер обновлён.",
+        "admin_banner_removed": "✅ Баннер убран.",
+        "admin_banner_wrong": "❌ Ожидалось {kind}. Попробуйте ещё раз.",
+        "admin_desc_title": (
+            "<b>📝 Описание бота</b>\n\n"
+            "Длинное (экран «Что умеет этот бот»):\n<blockquote>{long}</blockquote>\n\n"
+            "Короткое (в профиле):\n<blockquote>{short}</blockquote>"
+        ),
+        "admin_desc_edit_long": "✏️ Длинное описание",
+        "admin_desc_edit_short": "✏️ Короткое описание",
+        "admin_desc_enter_long": "✏️ Пришлите длинное описание (до 512 симв.):",
+        "admin_desc_enter_short": "✏️ Пришлите короткое описание (до 120 симв.):",
+        "admin_desc_saved": "✅ Описание обновлено.",
+
+        # --- bot profile defaults (set via Bot API) ---
+        "bot_desc_long": (
+            "Я переписываю посты в ваших Telegram-каналах через ИИ. "
+            "Поддерживаю несколько провайдеров, предпросмотр перед публикацией "
+            "и гибкие промпты. Нажмите «Start», чтобы настроить."
+        ),
+        "bot_desc_short": "ИИ переписывает посты в ваших каналах.",
+    },
+
+    "en": {
+        "btn_back": "◀️ Back",
+        "btn_home": "🏠 Menu",
+        "btn_cancel": "✖️ Cancel",
+        "btn_yes": "✅ Yes",
+        "btn_no": "❌ No",
+        "cancelled": "Cancelled.",
+        "loading": "⏳ Working…",
+        "error_generic": "⚠️ Something went wrong. Please try again.",
+        "banned_msg": "🚫 Access to the bot is restricted.",
+        "admin_only": "🚫 Admins only.",
+        "post_failed_dm": "⚠️ Couldn't rewrite a post in “{channel}”.\nReason: {error}",
+
+        "menu_title": "<b>🤖 Channel AI Bot</b>\n\nI rewrite posts in your channels with AI.\nChoose a section:",
+        "menu_settings": "⚙️ Settings",
+        "menu_channels": "📣 Channels",
+        "menu_stats": "📊 Stats",
+        "menu_provider": "🤖 Provider",
+        "menu_prompt": "✏️ Prompt",
+        "menu_help": "❓ Help",
+        "menu_admin": "🛠 Admin",
+
+        "start_welcome": "👋 Welcome! Let's set up the bot.",
+        "help_text": (
+            "<b>❓ Help</b>\n\n"
+            "The bot rewrites posts in linked channels with AI.\n\n"
+            "• <b>Provider</b> — pick the AI (FavoriteAPI / OpenRouter / FreeModel) and model.\n"
+            "• <b>Prompt</b> — how to rewrite posts.\n"
+            "• <b>Channels</b> — link channels and toggles.\n"
+            "• <b>Preview</b> — check the result in DM before publishing.\n\n"
+            "Commands: /start /menu /cancel\n\n"
+            "🆘 Support / owner: {support}"
+        ),
+
+        "settings_title": "<b>⚙️ Settings</b>",
+        "settings_lang": "🌐 Language: {code}",
+        "settings_preview_on": "👁 Preview: ON",
+        "settings_preview_off": "👁 Preview: OFF",
+        "settings_sys_on": "🎨 System prompt: ON",
+        "settings_sys_off": "🎨 System prompt: OFF",
+        "settings_reset_ctx": "♻️ Reset context",
+        "settings_reset_stats": "🗑 Reset stats",
+        "settings_saved": "✅ Saved.",
+        "settings_ctx_reset": "♻️ Context reset.",
+        "settings_stats_reset": "🗑 Stats reset.",
+
+        "provider_title": "<b>🤖 Provider</b>\n\nActive: <b>{active}</b>\nChoose a provider:",
+        "provider_test": "🧪 Test connection",
+        "provider_set_key": "🔑 Change key",
+        "provider_set_base": "🌐 Change base",
+        "provider_set_model": "📚 Change model",
+        "provider_switched": "✅ Active provider: <b>{name}</b>",
+        "provider_need_creds": "🔑 No saved key for <b>{name}</b>. Enter the key:",
+        "provider_test_ok": "✅ Connection OK.\n{info}",
+        "provider_test_fail": "❌ Connection error:\n{error}",
+        "provider_enter_base": "🌐 Enter the API base URL:",
+        "provider_enter_key": "🔑 Enter the API key:",
+        "provider_verifying": "⏳ Verifying key…",
+        "provider_key_ok": "✅ Key accepted.",
+        "provider_key_fail": "❌ Key verification failed:\n{error}",
+        "provider_choose_model": "📚 Choose a model:",
+        "provider_model_set": "✅ Model: <code>{model}</code>",
+        "provider_freemodel_warn": "ℹ️ FreeModel: free GPT models (gpt-5.4-mini etc). A daily request limit applies.",
+
+        "prompt_title": "<b>✏️ Prompt</b>",
+        "prompt_current": "Current prompt:\n<blockquote>{prompt}</blockquote>",
+        "prompt_empty": "No prompt set.",
+        "prompt_view": "👁 Show",
+        "prompt_edit": "✏️ Edit",
+        "prompt_presets": "📚 Presets",
+        "prompt_enter": "✏️ Send the new prompt as text:",
+        "prompt_saved": "✅ Prompt saved.",
+        "prompt_presets_title": "📚 Choose a preset:",
+        "prompt_preset_applied": "✅ Preset applied.",
+        "preset_lib_btn": "📚 Preset library",
+        "preset_lib_title": (
+            "📚 <b>Preset library</b>\n\n"
+            "⭐ — your presets (on top), 📄 — built-in.\n"
+            "Tap a preset to view it and apply it to the agent.\n\n"
+            "➕ <b>Create</b> — add your own preset manually.\n"
+            "🔮 <b>From post</b> — forward a post and the AI will build a preset from its "
+            "structure, formatting and tone."
+        ),
+        "preset_detail": "📄 <b>{name}</b>\n\n{body}",
+        "preset_apply": "✅ Apply preset",
+        "preset_back": "◀️ To preset list",
+        # --- user presets (create / delete) ---
+        "preset_new_btn": "➕ Create",
+        "preset_fwd_btn": "🔮 From post",
+        "preset_new_name": (
+            "✏️ <b>New preset</b>\n\n"
+            "Send the preset <b>name</b> (short, e.g. “Business style”)."
+        ),
+        "preset_new_body": (
+            "📝 Now send the <b>preset text</b> — the instruction for the AI on how to rewrite "
+            "posts (structure, tone, formatting, etc.)."
+        ),
+        "preset_created": "✅ Preset “{name}” saved and pinned to favorites (top of the list).",
+        "preset_delete_btn": "🗑 Delete preset",
+        "preset_delete_confirm": "🗑 Delete preset “{name}”? This cannot be undone.",
+        "preset_deleted": "🗑 Preset deleted.",
+        # --- AI preset suggestion from a forwarded post ---
+        "preset_fwd_howto": (
+            "🔮 <b>Preset from posts</b>\n\n"
+            "Forward 1 to 10 channel posts here (you can send several at once). "
+            "The more real posts, the better the AI captures your style.\n\n"
+            "After each post I'll show how many were collected. When you're ready, tap "
+            "“⚡️ Generate prompt”. The AI will analyze the structure, formatting (bold, "
+            "italic, spoilers, etc.) and tone, and suggest a ready preset.\n\n"
+            "A post with text or a media caption works."
+        ),
+        "preset_fwd_no_text": (
+            "⚠️ This post has no text to analyze — skipping it. Forward a post with text or a caption."
+        ),
+        "preset_collect_count": (
+            "📥 Posts collected: <b>{n}/{max}</b>.\n\n"
+            "Forward more (several at once is fine) or tap “⚡️ Generate prompt”."
+        ),
+        "preset_collect_capped": (
+            "📥 Maximum reached — <b>{max}</b> posts. Extra ones are ignored.\n\n"
+            "Tap “⚡️ Generate prompt” or cancel."
+        ),
+        "preset_collect_gen_btn": "⚡️ Generate prompt",
+        "preset_collect_empty": "Forward at least one post first.",
+        "preset_analyzing": "🔮 Analyzing the post… this takes a few seconds.",
+        "preset_analyzing_n": "🔮 Analyzing posts ({n})… this takes a few seconds.",
+        "preset_suggested_title": (
+            "🔮 <b>Suggested preset</b>\n\n{body}\n\n"
+            "Apply it now, or save it to favorites and apply."
+        ),
+        "preset_suggest_apply_btn": "✅ Apply",
+        "preset_suggest_save_btn": "💾 Save & apply",
+        "preset_suggest_discard_btn": "❌ Discard",
+        "preset_suggest_save_name": (
+            "💾 Send a <b>name</b> for this preset — it will be saved to favorites and applied to the agent."
+        ),
+        "preset_suggest_discarded": "❌ Suggestion discarded.",
+        "preset_suggest_fail": (
+            "😕 Couldn't analyze the post: {error}\n\nTry again or create a preset manually."
+        ),
+        "preset_session_stale": "⚠️ Session expired (the bot restarted). Open “✏️ Prompt” → library and try again.",
+
+        "channels_title": "<b>📣 Channels</b>",
+        "channels_empty": "No channels. Tap ➕ to link one.",
+        "channel_add": "➕ Link channel",
+        "channel_add_howto": (
+            "➕ <b>Link a channel</b>\n\n"
+            "Forward any post from the target channel here.\n"
+            "The bot must be an admin of that channel."
+        ),
+        "channel_added": "✅ Channel \"{title}\" linked.",
+        "channel_not_forwarded": "❌ That's not a forwarded channel post. Try again.",
+        "channel_removed": "✅ Channel unlinked.",
+        "channel_confirm_remove": "Unlink channel \"{title}\"?",
+        "channel_toggle_on": "▶️ Enable",
+        "channel_toggle_off": "⏸ Disable",
+        "channel_toggled": "✅ Channel status updated.",
+        "channel_set_active": "⭐ Make active",
+        "channel_active_set": "✅ Active channel updated.",
+        "channel_remove": "⏹ Unlink",
+
+        # --- agents (multi-agent home + wizard + card) ---
+        "agents_title": (
+            "<b>🤖 My agents</b>\n\n"
+            "Each agent rewrites posts in its own channels using its own provider and prompt.\n"
+            "Pick an agent or create a new one:"
+        ),
+        "agents_empty": (
+            "<b>🤖 My agents</b>\n\n"
+            "You don't have any agents yet. Create your first one — it will rewrite posts in the channels you link."
+        ),
+        "agent_create": "➕ Create agent",
+        "agent_card": (
+            "<b>🤖 {name}</b>\n\n"
+            "Provider: <b>{provider}</b>\n"
+            "Model: <code>{model}</code>\n"
+            "Prompt: <blockquote>{prompt}</blockquote>\n"
+            "Channels: {channels}"
+        ),
+        "agent_edit_name": "✏️ Name",
+        "agent_edit_provider": "🤖 Provider",
+        "agent_edit_key": "🔑 Key",
+        "agent_edit_model": "📚 Model",
+        "agent_edit_prompt": "✏️ Prompt",
+        "agent_channels": "📣 Channels",
+        "agent_delete": "🗑 Delete agent",
+        "agent_add_channel": "➕ Link channel",
+        "agent_ask_name": "✏️ <b>New agent</b>\n\nWhat should we call this agent? Send a name:",
+        "agent_ask_provider": "🤖 Choose a provider for the agent:",
+        "agent_next": "Done",
+        "agent_sys_title": (
+            "🎨 <b>System prompt</b>\n\n"
+            "Adds built-in formatting rules on top of your prompt. Enable it?"
+        ),
+        "agent_bind_howto": (
+            "➕ <b>Link a channel</b>\n\n"
+            "Forward any post from the target channel here.\n"
+            "The bot must be an admin of that channel.\n"
+            "Or tap \"Skip\" — you can link one later."
+        ),
+        "agent_bind_skip": "⏭ Skip",
+        "agent_skip_setup": "⏭ Skip setup",
+        "agent_ready": "✅ Agent ready! Channel \"{title}\" linked.",
+        "agent_ready_nochan": "✅ Agent ready! You can link a channel later from its card.",
+        "agent_addchan_howto": (
+            "➕ <b>Link a channel</b>\n\n"
+            "Forward any post from the channel here.\n"
+            "The bot must be an admin of that channel."
+        ),
+        "agent_chan_added": "✅ Channel \"{title}\" linked.",
+        "agent_channels_title": "<b>📣 Agent channels</b>\n\nTap ⏹ to unlink a channel.",
+        "agent_channels_empty": "<b>📣 Agent channels</b>\n\nNo channels yet. Tap ➕ to link one.",
+        "agent_confirm_delete": "Delete agent \"{name}\"? Its channels will stop being processed.",
+        "model_search": "🔎 Search",
+        "model_search_prompt": "🔎 Type part of a model name:",
+        "model_search_none": "❌ Nothing found. Showing the full list.",
+
+        "stats_title": "<b>📊 Statistics</b>",
+        "stats_body": (
+            "Processed: <b>{processed}</b>\n"
+            "Errors: <b>{failed}</b>\n"
+            "Avg time: <b>{avg_ms} ms</b>\n"
+            "Last activity: {last}"
+        ),
+        "stats_none": "No data yet.",
+
+        "preview_caption": (
+            "<b>👁 Preview</b>\n\n"
+            "Channel: {chan}\n\n"
+            "<blockquote>{text}</blockquote>\n\n"
+            "Publish?"
+        ),
+        "preview_publish": "✅ Publish",
+        "preview_reject": "❌ Reject",
+        "preview_edit": "✏️ Edit",
+        "preview_published": "✅ Published.",
+        "preview_rejected": "❌ Rejected.",
+        "preview_edit_prompt": (
+            "✏️ <b>Edit</b>\n\n"
+            "The current version is below — tap it to copy, edit it and send the new text back. "
+            "You can use HTML tags (&lt;b&gt;, &lt;i&gt;, etc.).\n\n"
+            "<code>{text}</code>"
+        ),
+
+        "admin_title": "<b>🛠 Admin panel</b>",
+        "admin_users": "👥 Users",
+        "admin_stats": "📊 Global stats",
+        "admin_broadcast": "📢 Broadcast",
+        "admin_logs": "📜 Logs",
+        "admin_banner": "🖼 Menu banner",
+        "admin_desc": "📝 Bot description",
+        "admin_users_title": "<b>👥 Users</b> ({count})",
+        "admin_user_ban": "🚫 Ban",
+        "admin_user_unban": "✅ Unban",
+        "admin_user_banned": "🚫 User banned.",
+        "admin_user_unbanned": "✅ User unbanned.",
+        "admin_gstats": (
+            "<b>📊 Global statistics</b>\n\n"
+            "Users: <b>{users}</b>\n"
+            "Posts processed: <b>{processed}</b>\n"
+            "Errors: <b>{failed}</b>"
+        ),
+        "admin_broadcast_prompt": "📢 Send the broadcast text:",
+        "admin_broadcast_sent": "✅ Broadcast sent: {ok}/{total}",
+        "admin_logs_title": "<b>📜 Recent requests</b>",
+        "admin_logs_empty": "No logs.",
+        "admin_banner_title": (
+            "<b>🖼 Menu banner</b>\n\nCurrent: {current}\n\n"
+            "The banner is shown above the main menu buttons."
+        ),
+        "admin_banner_photo": "📷 Set photo",
+        "admin_banner_video": "🎬 Set video",
+        "admin_banner_remove": "🗑 Remove banner",
+        "admin_banner_send_photo": "📷 Send a photo for the banner:",
+        "admin_banner_send_video": "🎬 Send a video for the banner:",
+        "admin_banner_saved": "✅ Banner updated.",
+        "admin_banner_removed": "✅ Banner removed.",
+        "admin_banner_wrong": "❌ Expected {kind}. Try again.",
+        "admin_desc_title": (
+            "<b>📝 Bot description</b>\n\n"
+            "Long (\"What can this bot do?\"):\n<blockquote>{long}</blockquote>\n\n"
+            "Short (profile):\n<blockquote>{short}</blockquote>"
+        ),
+        "admin_desc_edit_long": "✏️ Long description",
+        "admin_desc_edit_short": "✏️ Short description",
+        "admin_desc_enter_long": "✏️ Send the long description (max 512 chars):",
+        "admin_desc_enter_short": "✏️ Send the short description (max 120 chars):",
+        "admin_desc_saved": "✅ Description updated.",
+
+        "bot_desc_long": (
+            "I rewrite posts in your Telegram channels with AI. "
+            "I support multiple providers, preview before publishing, and "
+            "flexible prompts. Tap \"Start\" to set up."
+        ),
+        "bot_desc_short": "AI rewrites posts in your channels.",
+    },
+}
+
+
+def t(lang: str, key: str, **fmt) -> str:
+    """Return localized string for key; fall back ru → key. Format with **fmt."""
+    lang = lang if lang in TEXTS else DEFAULT_LANG
+    s = TEXTS.get(lang, {}).get(key)
+    if s is None:
+        s = TEXTS.get("ru", {}).get(key, key)
+    if fmt:
+        try:
+            return s.format(**fmt)
+        except (KeyError, IndexError, ValueError):
+            return s
+    return s

@@ -1,6 +1,6 @@
 import os, sys
 
-ROOT = '/data/data/com.termux/files/home/FavoriteStructure'
+ROOT = os.path.dirname(os.path.abspath(__file__))
 os.chdir(ROOT)
 
 pid = os.fork()
