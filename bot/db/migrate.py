@@ -39,6 +39,11 @@ COLUMN_MIGRATIONS: list[tuple[str, str, str]] = [
     ("users", "is_banned",        "INTEGER DEFAULT 0"),
     ("users", "active_channel_id", "INTEGER"),
     ("users", "created_at",       "INTEGER DEFAULT 0"),
+    ("users", "username",         "TEXT    DEFAULT ''"),
+    ("users", "first_name",       "TEXT    DEFAULT ''"),
+    ("users", "last_seen",        "INTEGER DEFAULT 0"),
+    ("users", "blocked",          "INTEGER DEFAULT 0"),
+    ("users", "blocked_at",       "INTEGER DEFAULT 0"),
     ("channels", "agent_id",      "INTEGER"),
 ]
 
@@ -115,6 +120,8 @@ NEW_TABLE_SQL: list[str] = [
     "CREATE INDEX IF NOT EXISTS idx_provider_configs_user ON provider_configs(user_id)",
     "CREATE INDEX IF NOT EXISTS idx_request_log_ts ON request_log(ts)",
     "CREATE INDEX IF NOT EXISTS idx_user_presets_user ON user_presets(user_id)",
+    "CREATE INDEX IF NOT EXISTS idx_users_created_at ON users(created_at)",
+    "CREATE INDEX IF NOT EXISTS idx_users_blocked_at ON users(blocked_at)",
 ]
 
 

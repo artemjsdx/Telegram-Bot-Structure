@@ -14,7 +14,7 @@ from telegram.constants import ParseMode
 from telegram.ext import ContextTypes, CommandHandler
 
 from config import ADMIN_IDS, DEFAULT_LANG
-from db.storage import get_user, upsert_user
+from db.storage import get_user, upsert_user, touch_user
 from handlers.menu import send_main_menu
 from texts import t
 
@@ -31,6 +31,11 @@ async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
             is_admin=1 if user_id in ADMIN_IDS else 0,
         )
         user = await get_user(user_id)
+
+    # Record/refresh @username + display name (for the admin user list) and
+    # clear any stale "blocked" flag — they're clearly active again.
+    eu = update.effective_user
+    await touch_user(user_id, eu.username or "", eu.first_name or "")
 
     lang = user.get("lang") or DEFAULT_LANG
 

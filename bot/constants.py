@@ -25,6 +25,10 @@ SET_BANNER_TYPE = "menu_banner_type"       # photo | video | none
 SET_BANNER_FILE_ID = "menu_banner_file_id"
 SET_BOT_DESCRIPTION = "bot_description"
 SET_BOT_SHORT_DESCRIPTION = "bot_short_description"
+SET_SUPPORT_ID = "support_id"               # numeric Telegram id of support contact
+SET_MENU_CHANNEL_ENABLED = "menu_channel_enabled"   # "1" | "0"
+SET_MENU_CHANNEL_LINK = "menu_channel_link"         # public/invite URL shown in the menu
+SET_MENU_CHANNEL_ID = "menu_channel_id"             # resolved channel id (-100…)
 
 BANNER_NONE = "none"
 BANNER_PHOTO = "photo"
@@ -71,4 +75,8 @@ PAGE_SIZE_LOGS = 15
     T_DESC_LONG,
     T_DESC_SHORT,
     T_PREVIEW_EDIT,
-) = range(100, 110)
+    T_SUPPORT_ID,
+    T_MENUCHAN_ID,
+    T_MENUCHAN_LINK,
+    T_USER_SEARCH,
+) = range(100, 114)

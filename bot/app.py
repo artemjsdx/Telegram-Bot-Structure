@@ -210,7 +210,10 @@ def main() -> None:
     app = build()
     log.info("Bot starting (long-polling)…")
     app.run_polling(
-        allowed_updates=[Update.MESSAGE, Update.CALLBACK_QUERY, Update.CHANNEL_POST],
+        allowed_updates=[
+            Update.MESSAGE, Update.CALLBACK_QUERY, Update.CHANNEL_POST,
+            Update.MY_CHAT_MEMBER,
+        ],
     )
 
 

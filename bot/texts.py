@@ -327,6 +327,23 @@ TEXTS: dict[str, dict[str, str]] = {
             "Последняя активность: {last}"
         ),
         "stats_none": "Пока нет данных.",
+        "stats_caption": (
+            "<b>📊 Ваша статистика</b>\n\n"
+            "Обработано: <b>{processed}</b> · Ошибок: <b>{failed}</b>\n"
+            "Успешность: <b>{rate}%</b>\n"
+            "Скорость: ср <b>{avg} мс</b> · медиана <b>{median} мс</b>\n"
+            "За 24ч: <b>{c24}</b> · 7д: <b>{c7}</b> · 30д: <b>{c30}</b>\n"
+            "Каналов: <b>{channels}</b> · Агентов: <b>{agents}</b>\n"
+            "Первая активность: {first}\n"
+            "Последняя активность: {last}"
+        ),
+        "stats_chart_title": "Статистика постов",
+        "stats_legend_proc": "Обработано",
+        "stats_legend_fail": "Ошибки",
+        "chart_sub_days": "за {n} дн.",
+        "period_1d": "1д",
+        "period_7d": "7д",
+        "period_30d": "30д",
 
         # --- preview ---
         "preview_caption": (
@@ -355,16 +372,87 @@ TEXTS: dict[str, dict[str, str]] = {
         "admin_logs": "📜 Логи",
         "admin_banner": "🖼 Баннер меню",
         "admin_desc": "📝 Описание бота",
+        "admin_support": "🆘 Поддержка",
+        "admin_menuchan": "📰 Канал в меню",
         "admin_users_title": "<b>👥 Пользователи</b> ({count})",
+        "admin_user_search": "🔎 Поиск",
+        "admin_user_search_prompt": "🔎 Введите @username, имя или ID пользователя:",
+        "admin_user_search_none": "❌ Никого не найдено по запросу «{q}».",
+        "admin_user_search_title": "<b>🔎 Результаты: «{q}»</b> ({count})",
         "admin_user_ban": "🚫 Забанить",
         "admin_user_unban": "✅ Разбанить",
         "admin_user_banned": "🚫 Пользователь забанен.",
         "admin_user_unbanned": "✅ Пользователь разбанен.",
+        "admin_user_none": "Пользователь не найден.",
+        "admin_user_status_banned": "🚫 бан",
+        "admin_user_status_blocked": "⛔ заблокировал бота",
+        "admin_user_status_ok": "🟢 активен",
+        "admin_user_card": (
+            "<b>👤 {name}</b>\n"
+            "ID: <code>{id}</code> · {status}\n\n"
+            "Обработано: <b>{processed}</b> · Ошибок: <b>{failed}</b>\n"
+            "Успешность: <b>{rate}%</b>\n"
+            "Скорость: ср <b>{avg}</b> · мед <b>{median}</b> · макс <b>{max}</b> мс\n"
+            "За 24ч: <b>{c24}</b> · 7д: <b>{c7}</b> · 30д: <b>{c30}</b>\n"
+            "Каналов: <b>{channels}</b> · Агентов: <b>{agents}</b>\n"
+            "Провайдер: {provider} · Язык: {ulang}\n"
+            "Регистрация: {created}\n"
+            "Последняя активность: {last}"
+        ),
         "admin_gstats": (
             "<b>📊 Глобальная статистика</b>\n\n"
             "Пользователей: <b>{users}</b>\n"
+            "Активных: <b>{active}</b> · Ушедших: <b>{blocked}</b> · Бан: <b>{banned}</b>\n"
             "Обработано постов: <b>{processed}</b>\n"
             "Ошибок: <b>{failed}</b>"
+        ),
+        "admin_gstats_chart_title": "Пользователи",
+        "admin_gstats_legend_join": "Новые",
+        "admin_gstats_legend_left": "Ушедшие",
+        # --- support contact ---
+        "admin_support_title": (
+            "<b>🆘 Контакт поддержки</b>\n\n"
+            "Текущий: {handle}\n"
+            "ID: <code>{id}</code>\n\n"
+            "Показывается в разделе «Помощь»."
+        ),
+        "admin_support_set": "✏️ Изменить ID",
+        "admin_support_prompt": "✏️ Пришлите числовой Telegram ID нового контакта поддержки:",
+        "admin_support_bad": "❌ Это не похоже на ID. Пришлите число (например 8149203573).",
+        "admin_support_saved": "✅ Контакт поддержки обновлён: {handle}",
+        # --- bot channel line in main menu ---
+        "admin_menuchan_title": (
+            "<b>📰 Канал бота в меню</b>\n\n"
+            "Статус: {status}\n"
+            "Ссылка: {link}\n\n"
+            "Когда включено, в главном меню появляется строка со ссылкой на канал."
+        ),
+        "admin_menuchan_on": "включён ✅",
+        "admin_menuchan_off": "выключен ⛔",
+        "admin_menuchan_none": "не задана",
+        "admin_menuchan_setup": "🔗 Указать канал",
+        "admin_menuchan_toggle_on": "✅ Включить строку",
+        "admin_menuchan_toggle_off": "⛔ Выключить строку",
+        "admin_menuchan_clear": "🗑 Сбросить",
+        "admin_menuchan_ask_id": (
+            "🔗 <b>Канал в меню</b>\n\n"
+            "Перешлите любой пост из канала, либо пришлите @username, ссылку t.me или ID (-100…).\n"
+            "Для публичного канала бот сам соберёт ссылку; для приватного попросит ссылку-инвайт."
+        ),
+        "admin_menuchan_ask_link": (
+            "🔒 У канала нет публичного @username.\n"
+            "Пришлите ссылку-приглашение вручную (https://t.me/+…):"
+        ),
+        "admin_menuchan_bad_id": (
+            "❌ Не удалось распознать канал. Пришлите @username, ссылку или ID, либо перешлите пост."
+        ),
+        "admin_menuchan_bad_link": "❌ Это не похоже на ссылку. Пришлите URL вида https://t.me/…",
+        "admin_menuchan_saved": "✅ Канал сохранён, строка в меню включена.",
+        "admin_menuchan_cleared": "✅ Настройка канала сброшена.",
+        "admin_menuchan_toggled_on": "✅ Строка канала включена.",
+        "admin_menuchan_toggled_off": "⛔ Строка канала выключена.",
+        "menu_channel_line": (
+            "📰 <a href=\"{link}\">Telegram-канал бота</a> — обновления, отзывы и раздачи"
         ),
         "admin_broadcast_prompt": "📢 Пришлите текст рассылки:",
         "admin_broadcast_sent": "✅ Рассылка отправлена: {ok}/{total}",
@@ -714,6 +802,23 @@ TEXTS: dict[str, dict[str, str]] = {
             "Last activity: {last}"
         ),
         "stats_none": "No data yet.",
+        "stats_caption": (
+            "<b>📊 Your statistics</b>\n\n"
+            "Processed: <b>{processed}</b> · Errors: <b>{failed}</b>\n"
+            "Success rate: <b>{rate}%</b>\n"
+            "Speed: avg <b>{avg} ms</b> · median <b>{median} ms</b>\n"
+            "24h: <b>{c24}</b> · 7d: <b>{c7}</b> · 30d: <b>{c30}</b>\n"
+            "Channels: <b>{channels}</b> · Agents: <b>{agents}</b>\n"
+            "First activity: {first}\n"
+            "Last activity: {last}"
+        ),
+        "stats_chart_title": "Posts statistics",
+        "stats_legend_proc": "Processed",
+        "stats_legend_fail": "Errors",
+        "chart_sub_days": "last {n} days",
+        "period_1d": "1d",
+        "period_7d": "7d",
+        "period_30d": "30d",
 
         "preview_caption": (
             "<b>👁 Preview</b>\n\n"
@@ -740,16 +845,85 @@ TEXTS: dict[str, dict[str, str]] = {
         "admin_logs": "📜 Logs",
         "admin_banner": "🖼 Menu banner",
         "admin_desc": "📝 Bot description",
+        "admin_support": "🆘 Support",
+        "admin_menuchan": "📰 Menu channel",
         "admin_users_title": "<b>👥 Users</b> ({count})",
+        "admin_user_search": "🔎 Search",
+        "admin_user_search_prompt": "🔎 Enter a @username, name or user ID:",
+        "admin_user_search_none": "❌ Nobody found for \"{q}\".",
+        "admin_user_search_title": "<b>🔎 Results: \"{q}\"</b> ({count})",
         "admin_user_ban": "🚫 Ban",
         "admin_user_unban": "✅ Unban",
         "admin_user_banned": "🚫 User banned.",
         "admin_user_unbanned": "✅ User unbanned.",
+        "admin_user_none": "User not found.",
+        "admin_user_status_banned": "🚫 banned",
+        "admin_user_status_blocked": "⛔ blocked the bot",
+        "admin_user_status_ok": "🟢 active",
+        "admin_user_card": (
+            "<b>👤 {name}</b>\n"
+            "ID: <code>{id}</code> · {status}\n\n"
+            "Processed: <b>{processed}</b> · Errors: <b>{failed}</b>\n"
+            "Success rate: <b>{rate}%</b>\n"
+            "Speed: avg <b>{avg}</b> · med <b>{median}</b> · max <b>{max}</b> ms\n"
+            "24h: <b>{c24}</b> · 7d: <b>{c7}</b> · 30d: <b>{c30}</b>\n"
+            "Channels: <b>{channels}</b> · Agents: <b>{agents}</b>\n"
+            "Provider: {provider} · Lang: {ulang}\n"
+            "Registered: {created}\n"
+            "Last activity: {last}"
+        ),
         "admin_gstats": (
             "<b>📊 Global statistics</b>\n\n"
             "Users: <b>{users}</b>\n"
+            "Active: <b>{active}</b> · Left: <b>{blocked}</b> · Banned: <b>{banned}</b>\n"
             "Posts processed: <b>{processed}</b>\n"
             "Errors: <b>{failed}</b>"
+        ),
+        "admin_gstats_chart_title": "Users",
+        "admin_gstats_legend_join": "Joined",
+        "admin_gstats_legend_left": "Left",
+        "admin_support_title": (
+            "<b>🆘 Support contact</b>\n\n"
+            "Current: {handle}\n"
+            "ID: <code>{id}</code>\n\n"
+            "Shown in the Help section."
+        ),
+        "admin_support_set": "✏️ Change ID",
+        "admin_support_prompt": "✏️ Send the numeric Telegram ID of the new support contact:",
+        "admin_support_bad": "❌ That doesn't look like an ID. Send a number (e.g. 8149203573).",
+        "admin_support_saved": "✅ Support contact updated: {handle}",
+        "admin_menuchan_title": (
+            "<b>📰 Bot channel in the menu</b>\n\n"
+            "Status: {status}\n"
+            "Link: {link}\n\n"
+            "When enabled, the main menu shows a line linking to the channel."
+        ),
+        "admin_menuchan_on": "enabled ✅",
+        "admin_menuchan_off": "disabled ⛔",
+        "admin_menuchan_none": "not set",
+        "admin_menuchan_setup": "🔗 Set channel",
+        "admin_menuchan_toggle_on": "✅ Enable line",
+        "admin_menuchan_toggle_off": "⛔ Disable line",
+        "admin_menuchan_clear": "🗑 Reset",
+        "admin_menuchan_ask_id": (
+            "🔗 <b>Menu channel</b>\n\n"
+            "Forward any post from the channel, or send a @username, t.me link or ID (-100…).\n"
+            "For a public channel I'll build the link; for a private one I'll ask for the invite link."
+        ),
+        "admin_menuchan_ask_link": (
+            "🔒 The channel has no public @username.\n"
+            "Send the invite link manually (https://t.me/+…):"
+        ),
+        "admin_menuchan_bad_id": (
+            "❌ Couldn't recognize the channel. Send a @username, link or ID, or forward a post."
+        ),
+        "admin_menuchan_bad_link": "❌ That doesn't look like a link. Send a URL like https://t.me/…",
+        "admin_menuchan_saved": "✅ Channel saved, the menu line is enabled.",
+        "admin_menuchan_cleared": "✅ Channel setting reset.",
+        "admin_menuchan_toggled_on": "✅ Channel line enabled.",
+        "admin_menuchan_toggled_off": "⛔ Channel line disabled.",
+        "menu_channel_line": (
+            "📰 <a href=\"{link}\">Bot's Telegram channel</a> — updates, reviews & giveaways"
         ),
         "admin_broadcast_prompt": "📢 Send the broadcast text:",
         "admin_broadcast_sent": "✅ Broadcast sent: {ok}/{total}",

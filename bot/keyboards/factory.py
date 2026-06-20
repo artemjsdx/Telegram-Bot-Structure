@@ -354,29 +354,90 @@ def admin_menu_kb(lang: str = "ru") -> InlineKeyboardMarkup:
          InlineKeyboardButton(t(lang, "admin_logs"), callback_data="admin:logs")],
         [InlineKeyboardButton(t(lang, "admin_banner"), callback_data="admin:banner"),
          InlineKeyboardButton(t(lang, "admin_desc"), callback_data="admin:desc")],
+        [InlineKeyboardButton(t(lang, "admin_support"), callback_data="admin:support"),
+         InlineKeyboardButton(t(lang, "admin_menuchan"), callback_data="admin:menuchan")],
         [home_btn(lang)],
     ])
 
 
-def admin_users_kb(users: list[dict], page: int, total: int, lang: str = "ru") -> InlineKeyboardMarkup:
-    rows = []
-    for u in users:
-        flag = "🚫 " if u.get("is_banned") else ""
-        rows.append([InlineKeyboardButton(
-            f"{flag}{u['user_id']}", callback_data=f"admin:user:{u['user_id']}")])
-    rows += _pager(page, total, PAGE_SIZE_USERS, "admin:users")
-    rows.append([back_btn("menu:admin", lang), home_btn(lang)])
+def _user_label(u: dict) -> str:
+    """Button label for a user: @username → first_name → id, with a status flag."""
+    uname = u.get("username")
+    label = ("@" + uname) if uname else (u.get("first_name") or str(u["user_id"]))
+    if len(label) > 28:
+        label = label[:27] + "…"
+    flag = "🚫 " if u.get("is_banned") else ("⛔ " if u.get("blocked") else "")
+    return f"{flag}{label}"
+
+
+def admin_users_kb(
+    users: list[dict],
+    page: int,
+    total: int,
+    lang: str = "ru",
+    page_prefix: str = "admin:users",
+    show_search: bool = True,
+    back_cb: str = "menu:admin",
+) -> InlineKeyboardMarkup:
+    rows = [[InlineKeyboardButton(_user_label(u), callback_data=f"admin:user:{u['user_id']}")]
+            for u in users]
+    rows += _pager(page, total, PAGE_SIZE_USERS, page_prefix)
+    if show_search:
+        rows.append([InlineKeyboardButton(t(lang, "admin_user_search"), callback_data="admin:usearch")])
+    rows.append([back_btn(back_cb, lang), home_btn(lang)])
     return InlineKeyboardMarkup(rows)
 
 
-def admin_user_actions_kb(uid: int, banned: bool, lang: str = "ru") -> InlineKeyboardMarkup:
+def _period_row(prefix: str, win: int, lang: str) -> list[InlineKeyboardButton]:
+    """1д/7д/30д toggle row; the active window is marked with •."""
+    def b(days: int, key: str) -> InlineKeyboardButton:
+        label = t(lang, key)
+        if win == days:
+            label = "• " + label
+        return InlineKeyboardButton(label, callback_data=f"{prefix}:{days}")
+    return [b(1, "period_1d"), b(7, "period_7d"), b(30, "period_30d")]
+
+
+def admin_user_card_kb(uid: int, banned: bool, win: int = 7, lang: str = "ru") -> InlineKeyboardMarkup:
     toggle = (InlineKeyboardButton(t(lang, "admin_user_unban"), callback_data=f"admin:unban:{uid}")
               if banned else
               InlineKeyboardButton(t(lang, "admin_user_ban"), callback_data=f"admin:ban:{uid}"))
     return InlineKeyboardMarkup([
+        _period_row(f"admin:user:{uid}", win, lang),
         [toggle],
         [back_btn("admin:users:0", lang), home_btn(lang)],
     ])
+
+
+def admin_stats_kb(win: int = 7, lang: str = "ru") -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup([
+        _period_row("admin:stats", win, lang),
+        [back_btn("menu:admin", lang), home_btn(lang)],
+    ])
+
+
+def stats_period_kb(win: int = 7, lang: str = "ru") -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup([
+        _period_row("s:stats", win, lang),
+        [home_btn(lang)],
+    ])
+
+
+def admin_support_kb(lang: str = "ru") -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup([
+        [InlineKeyboardButton(t(lang, "admin_support_set"), callback_data="admin:support:set")],
+        [back_btn("menu:admin", lang), home_btn(lang)],
+    ])
+
+
+def admin_menuchan_kb(enabled: bool, configured: bool, lang: str = "ru") -> InlineKeyboardMarkup:
+    rows = [[InlineKeyboardButton(t(lang, "admin_menuchan_setup"), callback_data="admin:menuchan:setup")]]
+    if configured:
+        toggle_key = "admin_menuchan_toggle_off" if enabled else "admin_menuchan_toggle_on"
+        rows.append([InlineKeyboardButton(t(lang, toggle_key), callback_data="admin:menuchan:toggle")])
+        rows.append([InlineKeyboardButton(t(lang, "admin_menuchan_clear"), callback_data="admin:menuchan:clear")])
+    rows.append([back_btn("menu:admin", lang), home_btn(lang)])
+    return InlineKeyboardMarkup(rows)
 
 
 def admin_banner_kb(current: str, lang: str = "ru") -> InlineKeyboardMarkup:

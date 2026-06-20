@@ -6,7 +6,9 @@ from __future__ import annotations
 
 import json
 import os
+import statistics
 import time
+from datetime import datetime, timedelta, timezone
 from typing import Any, Optional
 
 import aiosqlite
@@ -93,6 +95,46 @@ async def upsert_user(user_id: int, **kwargs) -> None:
             values = list(kwargs.values()) + [user_id]
             await db.execute(
                 f"UPDATE users SET {sets} WHERE user_id=?", values
+            )
+        await db.commit()
+
+
+async def touch_user(user_id: int, username: str = "", first_name: str = "") -> None:
+    """
+    Record/refresh a user's @username, display name and last-seen time.
+    An active interaction proves they still have the bot, so blocked is cleared.
+    created_at is preserved on existing rows (set only on first insert).
+    """
+    now = int(time.time())
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute(
+            """
+            INSERT INTO users (user_id, username, first_name, last_seen, created_at, blocked, blocked_at)
+            VALUES (?,?,?,?,?,0,0)
+            ON CONFLICT(user_id) DO UPDATE SET
+                username=excluded.username,
+                first_name=excluded.first_name,
+                last_seen=excluded.last_seen,
+                blocked=0,
+                blocked_at=0
+            """,
+            (user_id, username or "", first_name or "", now, now),
+        )
+        await db.commit()
+
+
+async def set_blocked(user_id: int, flag: bool) -> None:
+    """Mark whether a user removed/blocked the bot. Stamps blocked_at when blocking."""
+    async with aiosqlite.connect(DB_PATH) as db:
+        if flag:
+            await db.execute(
+                "UPDATE users SET blocked=1, blocked_at=? WHERE user_id=?",
+                (int(time.time()), user_id),
+            )
+        else:
+            await db.execute(
+                "UPDATE users SET blocked=0, blocked_at=0 WHERE user_id=?",
+                (user_id,),
             )
         await db.commit()
 
@@ -492,6 +534,131 @@ async def get_stats_for_user(user_id: int) -> dict:
     return {"total": 0, "failed": 0, "avg_ms": 0, "last_ts": None}
 
 
+async def get_user_detail_stats(user_id: int) -> dict:
+    """
+    Rich per-user aggregation for the detail/stat cards: totals, success-rate,
+    avg/median/max latency, post counts over 24h/7d/30d, first/last activity,
+    agent & active-channel counts, plus profile fields (provider, lang, status).
+    """
+    now = int(time.time())
+    d24, d7, d30 = now - 86400, now - 7 * 86400, now - 30 * 86400
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        async with db.execute(
+            """
+            SELECT
+                COUNT(*)                                       AS total,
+                SUM(CASE WHEN success=1 THEN 1 ELSE 0 END)    AS processed,
+                SUM(CASE WHEN success=0 THEN 1 ELSE 0 END)    AS failed,
+                AVG(CASE WHEN success=1 THEN response_ms END)  AS avg_ms,
+                MAX(CASE WHEN success=1 THEN response_ms END)  AS max_ms,
+                MIN(ts)                                        AS first_ts,
+                MAX(ts)                                        AS last_ts,
+                SUM(CASE WHEN ts>=? THEN 1 ELSE 0 END)         AS c24,
+                SUM(CASE WHEN ts>=? THEN 1 ELSE 0 END)         AS c7,
+                SUM(CASE WHEN ts>=? THEN 1 ELSE 0 END)         AS c30
+            FROM post_stats WHERE user_id=?
+            """,
+            (d24, d7, d30, user_id),
+        ) as cur:
+            row = await cur.fetchone()
+        s = dict(row) if row else {}
+        async with db.execute(
+            "SELECT response_ms FROM post_stats WHERE user_id=? AND success=1 ORDER BY response_ms",
+            (user_id,),
+        ) as cur:
+            vals = [r[0] for r in await cur.fetchall()]
+        async with db.execute(
+            "SELECT COUNT(*) FROM agents WHERE user_id=?", (user_id,)
+        ) as cur:
+            agents = (await cur.fetchone())[0]
+        async with db.execute(
+            "SELECT COUNT(*) FROM channels WHERE user_id=? AND active=1", (user_id,)
+        ) as cur:
+            channels = (await cur.fetchone())[0]
+
+    user = await get_user(user_id) or {}
+    total = s.get("total") or 0
+    processed = s.get("processed") or 0
+    return {
+        "total": total,
+        "processed": processed,
+        "failed": s.get("failed") or 0,
+        "success_rate": round(processed / total * 100) if total else 0,
+        "avg_ms": round(s.get("avg_ms") or 0),
+        "median_ms": round(statistics.median(vals)) if vals else 0,
+        "max_ms": round(s.get("max_ms") or 0),
+        "c24": s.get("c24") or 0,
+        "c7": s.get("c7") or 0,
+        "c30": s.get("c30") or 0,
+        "first_ts": s.get("first_ts"),
+        "last_ts": s.get("last_ts"),
+        "agents": agents,
+        "channels": channels,
+        "provider": user.get("provider") or "—",
+        "lang": user.get("lang") or "ru",
+        "created_at": user.get("created_at") or 0,
+        "is_banned": bool(user.get("is_banned")),
+        "blocked": bool(user.get("blocked")),
+        "username": user.get("username") or "",
+        "first_name": user.get("first_name") or "",
+    }
+
+
+def _day_window(days: int) -> tuple:
+    """Return (start_date, since_ts, list_of_dates) for the last `days` days in UTC."""
+    today = datetime.now(timezone.utc).date()
+    start = today - timedelta(days=days - 1)
+    since_ts = int(datetime(start.year, start.month, start.day, tzinfo=timezone.utc).timestamp())
+    dates = [start + timedelta(days=i) for i in range(days)]
+    return start, since_ts, dates
+
+
+async def posts_per_day(user_id: int, days: int) -> list[tuple[str, int, int]]:
+    """[(label 'MM-DD', processed, failed)] for the last `days` UTC days, gap-filled."""
+    _, since_ts, dates = _day_window(days)
+    buckets = {d.isoformat(): [0, 0] for d in dates}
+    async with aiosqlite.connect(DB_PATH) as db:
+        async with db.execute(
+            "SELECT ts, success FROM post_stats WHERE user_id=? AND ts>=?",
+            (user_id, since_ts),
+        ) as cur:
+            rows = await cur.fetchall()
+    for ts, success in rows:
+        key = datetime.fromtimestamp(ts, tz=timezone.utc).date().isoformat()
+        if key in buckets:
+            buckets[key][0 if success else 1] += 1
+    return [(d.strftime("%m-%d"), *buckets[d.isoformat()]) for d in dates]
+
+
+async def users_flow_per_day(days: int) -> list[tuple[str, int, int]]:
+    """[(label 'MM-DD', joined, left)] for the last `days` UTC days, gap-filled."""
+    _, since_ts, dates = _day_window(days)
+    buckets = {d.isoformat(): [0, 0] for d in dates}
+    async with aiosqlite.connect(DB_PATH) as db:
+        async with db.execute(
+            "SELECT created_at FROM users WHERE created_at>=?", (since_ts,)
+        ) as cur:
+            joined = await cur.fetchall()
+        async with db.execute(
+            "SELECT blocked_at FROM users WHERE blocked=1 AND blocked_at>=?", (since_ts,)
+        ) as cur:
+            left = await cur.fetchall()
+    for (ts,) in joined:
+        if not ts:
+            continue
+        key = datetime.fromtimestamp(ts, tz=timezone.utc).date().isoformat()
+        if key in buckets:
+            buckets[key][0] += 1
+    for (ts,) in left:
+        if not ts:
+            continue
+        key = datetime.fromtimestamp(ts, tz=timezone.utc).date().isoformat()
+        if key in buckets:
+            buckets[key][1] += 1
+    return [(d.strftime("%m-%d"), *buckets[d.isoformat()]) for d in dates]
+
+
 async def reset_stats_for_user(user_id: int) -> None:
     """Wipe per-user post_stats rows and zero the aggregate counters."""
     async with aiosqlite.connect(DB_PATH) as db:
@@ -618,6 +785,42 @@ async def count_users() -> int:
             return row[0] if row else 0
 
 
+def _search_clause(query: str) -> tuple[str, list]:
+    """Build a WHERE clause + params matching username/first_name substring or exact id."""
+    q = (query or "").strip().lstrip("@")
+    like = f"%{q.lower()}%"
+    params: list = [like, like]
+    clause = "LOWER(username) LIKE ? OR LOWER(first_name) LIKE ?"
+    if q.isdigit():
+        clause += " OR user_id=?"
+        params.append(int(q))
+    return clause, params
+
+
+async def search_users(query: str, limit: int = 50, offset: int = 0) -> list[dict]:
+    """Find users by @username/name substring (case-insensitive) or exact id."""
+    clause, params = _search_clause(query)
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        async with db.execute(
+            f"SELECT * FROM users WHERE {clause} "
+            "ORDER BY created_at ASC, user_id ASC LIMIT ? OFFSET ?",
+            params + [limit, offset],
+        ) as cur:
+            rows = await cur.fetchall()
+            return [_row_to_user(r) for r in rows]
+
+
+async def count_search(query: str) -> int:
+    clause, params = _search_clause(query)
+    async with aiosqlite.connect(DB_PATH) as db:
+        async with db.execute(
+            f"SELECT COUNT(*) FROM users WHERE {clause}", params
+        ) as cur:
+            row = await cur.fetchone()
+            return row[0] if row else 0
+
+
 async def global_stats() -> dict:
     """Aggregate counters across all users."""
     async with aiosqlite.connect(DB_PATH) as db:
@@ -625,13 +828,18 @@ async def global_stats() -> dict:
         async with db.execute(
             "SELECT COUNT(*) AS users, "
             "COALESCE(SUM(posts_processed),0) AS processed, "
-            "COALESCE(SUM(posts_failed),0) AS failed FROM users"
+            "COALESCE(SUM(posts_failed),0) AS failed, "
+            "COALESCE(SUM(CASE WHEN blocked=1 THEN 1 ELSE 0 END),0) AS blocked, "
+            "COALESCE(SUM(CASE WHEN is_banned=1 THEN 1 ELSE 0 END),0) AS banned "
+            "FROM users"
         ) as cur:
             row = await cur.fetchone()
             return {
                 "users": row["users"] or 0,
                 "processed": row["processed"] or 0,
                 "failed": row["failed"] or 0,
+                "blocked": row["blocked"] or 0,
+                "banned": row["banned"] or 0,
             }
 
 

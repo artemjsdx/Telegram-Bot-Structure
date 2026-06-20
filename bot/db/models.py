@@ -26,7 +26,12 @@ CREATE TABLE IF NOT EXISTS users (
     is_admin          INTEGER DEFAULT 0,
     is_banned         INTEGER DEFAULT 0,
     active_channel_id INTEGER,
-    created_at        INTEGER DEFAULT 0
+    created_at        INTEGER DEFAULT 0,
+    username          TEXT    DEFAULT '',
+    first_name        TEXT    DEFAULT '',
+    last_seen         INTEGER DEFAULT 0,
+    blocked           INTEGER DEFAULT 0,
+    blocked_at        INTEGER DEFAULT 0
 )
 """
 
@@ -120,6 +125,8 @@ CREATE_INDEXES = [
     "CREATE INDEX IF NOT EXISTS idx_provider_configs_user ON provider_configs(user_id)",
     "CREATE INDEX IF NOT EXISTS idx_request_log_ts ON request_log(ts)",
     "CREATE INDEX IF NOT EXISTS idx_user_presets_user ON user_presets(user_id)",
+    "CREATE INDEX IF NOT EXISTS idx_users_created_at ON users(created_at)",
+    "CREATE INDEX IF NOT EXISTS idx_users_blocked_at ON users(blocked_at)",
 ]
 
 
