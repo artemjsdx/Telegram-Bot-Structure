@@ -73,12 +73,15 @@ def _with_skip(kb: InlineKeyboardMarkup, lang: str) -> InlineKeyboardMarkup:
 
 
 def _sys_kb(enabled: bool, lang: str) -> InlineKeyboardMarkup:
+    # No skip-setup button here: this is the final wizard step (name/provider/key/
+    # model/prompt are already entered), so "➡️ Next" finalises the agent. A skip
+    # button at this point only throws all that work away — a footgun. Bail via
+    # /cancel if needed.
     return InlineKeyboardMarkup([
         [InlineKeyboardButton(
             t(lang, "settings_sys_on") if enabled else t(lang, "settings_sys_off"),
             callback_data="agent:sys")],
         [InlineKeyboardButton("➡️ " + t(lang, "agent_next"), callback_data="agent:sysdone")],
-        [_skip_btn(lang)],
     ])
 
 
