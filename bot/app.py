@@ -115,9 +115,14 @@ def _preview_handlers() -> list:
 
 # ───── lifecycle ─────
 async def post_init(app: Application) -> None:
-    await init_db()
+    # Migrations FIRST: on an existing DB they ADD the new columns
+    # (blocked_at, …) before init_db() creates indexes that reference them.
+    # CREATE TABLE IF NOT EXISTS never adds columns to a pre-existing table,
+    # so the order matters. On a fresh install run_migrations() is a no-op
+    # (DB file absent) and init_db() creates everything from scratch.
     await run_migrations()
-    log.info("Database ready (init + migrations).")
+    await init_db()
+    log.info("Database ready (migrations + init).")
 
     # Flag known admins that already have a row; others pass via ADMIN_IDS anyway.
     for aid in ADMIN_IDS:
