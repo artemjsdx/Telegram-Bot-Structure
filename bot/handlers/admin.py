@@ -375,6 +375,10 @@ def get_admin_handlers() -> list:
             CallbackQueryHandler(cancel, pattern=r"^menu:"),
             CommandHandler("cancel", cancel),
         ],
+        # Reentry lets an admin re-press a banner/broadcast/desc button to restart
+        # the flow even if a previous wait was left dangling (e.g. they sent /start
+        # instead of the expected photo) — without it the entry point stays inert.
+        allow_reentry=True,
         per_message=False,
         name="admin_input",
         persistent=False,

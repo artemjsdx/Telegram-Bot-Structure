@@ -182,9 +182,14 @@ async def begin(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     context.user_data.clear()
     context.user_data["agent_lang"] = lang
     context.user_data["agent_sys"] = True
-    await q.edit_message_text(
-        t(lang, "agent_ask_name"), parse_mode=ParseMode.HTML, reply_markup=_skip_kb(lang)
-    )
+    # The origin may be the main-menu banner (photo/video), which has no text to
+    # edit. Try an in-place edit, fall back to delete+resend (nav) like show().
+    try:
+        await q.edit_message_text(
+            t(lang, "agent_ask_name"), parse_mode=ParseMode.HTML, reply_markup=_skip_kb(lang)
+        )
+    except Exception:
+        await nav(update, context, t(lang, "agent_ask_name"), _skip_kb(lang))
     return A_NAME
 
 
