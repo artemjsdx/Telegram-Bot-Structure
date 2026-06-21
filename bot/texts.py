@@ -64,6 +64,8 @@ TEXTS: dict[str, dict[str, str]] = {
             "<b>✏️ Промпт и библиотека пресетов</b>\n"
             "Промпт — самое важное, именно он задаёт стиль. В библиотеке: <b>⭐</b> — ваши "
             "пресеты, <b>📄</b> — готовые. <b>➕ Создать</b> — ввести свой вручную.\n"
+            "Тап по пресету открывает карточку: <b>✅ Применить</b>, "
+            "<b>📨 Поделиться</b>, <b>🗑 Удалить</b>.\n"
             "<b>🔮 Из поста</b> — ИИ сам соберёт промпт по вашим постам:\n"
             "1. Перешлите от 1 до 20 реальных постов канала (можно пачкой). Чем больше — тем "
             "точнее ИИ поймёт стиль.\n"
@@ -73,6 +75,16 @@ TEXTS: dict[str, dict[str, str]] = {
             "умолчанию (берите, если постов много и они разные).\n"
             "3. ИИ предложит промпт: <b>✅ Применить</b>, <b>💾 Сохранить и применить</b> "
             "(добавит в ваши пресеты) или <b>❌ Отклонить</b>.\n\n"
+
+            "<b>📨 Предложка пресетов</b>\n"
+            "Своим пресетом можно поделиться с другим пользователем. Откройте пресет и "
+            "нажмите <b>📨 Поделиться</b>, затем укажите <b>ID</b> или <b>@username</b> "
+            "получателя — он должен пользоваться этим ботом.\n"
+            "Получателю придёт предложение, где он сам выберет: <b>✅ Применить</b> к "
+            "своему агенту, <b>💾 В библиотеку</b>, <b>👁 Осмотреть</b> или "
+            "<b>❌ Отклонить</b>.\n"
+            "<i>Не хотите получать чужие пресеты — выключите «📨 Предложка пресетов» "
+            "в Настройках.</i>\n\n"
 
             "<b>📣 Каналы</b>\n"
             "Привязка: перешлите в бота любой пост из нужного канала. Бот должен быть "
@@ -87,6 +99,8 @@ TEXTS: dict[str, dict[str, str]] = {
             "• <b>🎨 Сис.промпт</b> — как промпт передаётся модели.\n"
             "• <b>👁 Предпросмотр</b> — если ВКЛ, переписанный пост сначала приходит вам в ЛС "
             "на проверку и публикуется только после подтверждения.\n"
+            "• <b>📨 Предложка пресетов</b> — принимать ли пресеты, которыми делятся "
+            "с вами другие пользователи.\n"
             "• <b>🌐 Язык</b>, <b>🗑 Сбросить статистику</b>.\n\n"
 
             "<b>📊 Статистика</b> — сколько постов переписано и расход по запросам.\n\n"
@@ -330,10 +344,14 @@ TEXTS: dict[str, dict[str, str]] = {
             "Добавляет к вашему промпту служебные правила оформления. Включить?"
         ),
         "agent_bind_howto": (
-            "➕ <b>Привязка канала</b>\n\n"
-            "Перешлите сюда любой пост из нужного канала.\n"
-            "Бот должен быть администратором канала.\n"
-            "Или нажмите «Пропустить» — привяжете позже."
+            "➕ <b>Привязка канала к агенту</b>\n\n"
+            "Чтобы агент переписывал посты, привяжите к нему канал:\n\n"
+            "<b>1.</b> Добавьте бота в канал <b>администратором</b> "
+            "(право <i>«Публикация сообщений»</i> обязательно).\n"
+            "<b>2.</b> Перешлите сюда <b>любой пост</b> из этого канала.\n\n"
+            "<blockquote>Бот определит канал из пересланного поста сам — "
+            "вводить ID вручную не нужно.</blockquote>\n\n"
+            "<i>Можно нажать «Пропустить» — привяжете позже из карточки агента.</i>"
         ),
         "agent_bind_skip": "⏭ Пропустить",
         "agent_skip_setup": "⏭ Пропустить настройку",
@@ -341,9 +359,12 @@ TEXTS: dict[str, dict[str, str]] = {
         "agent_ready_nochan": "✅ Агент готов! Канал можно привязать позже из его карточки.",
         "agent_gone": "⚠️ Этот агент уже удалён, привязывать канал не к чему. Откройте меню и выберите агента заново.",
         "agent_addchan_howto": (
-            "➕ <b>Привязка канала</b>\n\n"
-            "Перешлите сюда любой пост из нужного канала.\n"
-            "Бот должен быть администратором канала."
+            "➕ <b>Привязка канала к агенту</b>\n\n"
+            "<b>1.</b> Добавьте бота в канал <b>администратором</b> "
+            "(право <i>«Публикация сообщений»</i>).\n"
+            "<b>2.</b> Перешлите сюда <b>любой пост</b> из этого канала.\n\n"
+            "<blockquote>Канал определится из пересланного поста — "
+            "ID вручную вводить не нужно.</blockquote>"
         ),
         "agent_chan_added": "✅ Канал «{title}» привязан.",
         "agent_channels_title": "<b>📣 Каналы агента</b>\n\nНажмите ⏹, чтобы отвязать канал.",
@@ -579,6 +600,8 @@ TEXTS: dict[str, dict[str, str]] = {
             "The prompt is the most important part — it sets the style. In the library: "
             "<b>⭐</b> — your presets, <b>📄</b> — ready-made. <b>➕ Create</b> — enter your "
             "own manually.\n"
+            "Tapping a preset opens its card: <b>✅ Apply</b>, <b>📨 Share</b>, "
+            "<b>🗑 Delete</b>.\n"
             "<b>🔮 From posts</b> — the AI builds a prompt from your posts:\n"
             "1. Forward 1 to 20 real channel posts (a batch is fine). The more, the better "
             "the AI captures the style.\n"
@@ -588,6 +611,15 @@ TEXTS: dict[str, dict[str, str]] = {
             "style (use it when you sent many, varied posts).\n"
             "3. The AI suggests a prompt: <b>✅ Apply</b>, <b>💾 Save &amp; apply</b> "
             "(adds it to your presets) or <b>❌ Discard</b>.\n\n"
+
+            "<b>📨 Sharing presets</b>\n"
+            "You can share one of your presets with another user. Open the preset and tap "
+            "<b>📨 Share</b>, then enter the recipient's <b>ID</b> or <b>@username</b> — "
+            "they must already use this bot.\n"
+            "They get an offer and decide for themselves: <b>✅ Apply</b> to one of their "
+            "agents, <b>💾 To library</b>, <b>👁 View</b> or <b>❌ Reject</b>.\n"
+            "<i>Don't want to receive others' presets — turn off “📨 Shared presets” "
+            "in Settings.</i>\n\n"
 
             "<b>📣 Channels</b>\n"
             "To link: forward any post from the channel to the bot. The bot must be an "
@@ -602,6 +634,8 @@ TEXTS: dict[str, dict[str, str]] = {
             "• <b>🎨 System prompt</b> — how the prompt is passed to the model.\n"
             "• <b>👁 Preview</b> — when ON, the rewritten post first arrives in your DM for "
             "review and is published only after you confirm.\n"
+            "• <b>📨 Shared presets</b> — whether to accept presets other users share "
+            "with you.\n"
             "• <b>🌐 Language</b>, <b>🗑 Reset stats</b>.\n\n"
 
             "<b>📊 Stats</b> — how many posts were rewritten and request usage.\n\n"
@@ -841,10 +875,14 @@ TEXTS: dict[str, dict[str, str]] = {
             "Adds built-in formatting rules on top of your prompt. Enable it?"
         ),
         "agent_bind_howto": (
-            "➕ <b>Link a channel</b>\n\n"
-            "Forward any post from the target channel here.\n"
-            "The bot must be an admin of that channel.\n"
-            "Or tap \"Skip\" — you can link one later."
+            "➕ <b>Link a channel to the agent</b>\n\n"
+            "For the agent to rewrite posts, link it to a channel:\n\n"
+            "<b>1.</b> Add the bot to the channel as an <b>administrator</b> "
+            "(the <i>“Post messages”</i> right is required).\n"
+            "<b>2.</b> Forward <b>any post</b> from that channel here.\n\n"
+            "<blockquote>The bot detects the channel from the forwarded post "
+            "automatically — no need to type an ID.</blockquote>\n\n"
+            "<i>You can tap “Skip” and link one later from the agent's card.</i>"
         ),
         "agent_bind_skip": "⏭ Skip",
         "agent_skip_setup": "⏭ Skip setup",
@@ -852,9 +890,12 @@ TEXTS: dict[str, dict[str, str]] = {
         "agent_ready_nochan": "✅ Agent ready! You can link a channel later from its card.",
         "agent_gone": "⚠️ This agent was already deleted — there's nothing to link the channel to. Open the menu and pick an agent again.",
         "agent_addchan_howto": (
-            "➕ <b>Link a channel</b>\n\n"
-            "Forward any post from the channel here.\n"
-            "The bot must be an admin of that channel."
+            "➕ <b>Link a channel to the agent</b>\n\n"
+            "<b>1.</b> Add the bot to the channel as an <b>administrator</b> "
+            "(the <i>“Post messages”</i> right).\n"
+            "<b>2.</b> Forward <b>any post</b> from that channel here.\n\n"
+            "<blockquote>The channel is detected from the forwarded post — "
+            "no manual ID needed.</blockquote>"
         ),
         "agent_chan_added": "✅ Channel \"{title}\" linked.",
         "agent_channels_title": "<b>📣 Agent channels</b>\n\nTap ⏹ to unlink a channel.",
