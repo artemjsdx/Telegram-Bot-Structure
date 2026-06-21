@@ -1,12 +1,14 @@
 from .favoriteapi import FavoriteAPIProvider
 from .openrouter import OpenRouterProvider
 from .freemodel import FreeModelProvider
+from .openmodel import OpenModelProvider
 from .base import BaseProvider
 
 PROVIDERS: dict[str, BaseProvider] = {
     "favoriteapi": FavoriteAPIProvider(),
     "openrouter": OpenRouterProvider(),
     "freemodel": FreeModelProvider(),
+    "openmodel": OpenModelProvider(),
 }
 
 

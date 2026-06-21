@@ -21,6 +21,7 @@ PROVIDER_LABELS = {
     "favoriteapi": "⭐ FavoriteAPI",
     "openrouter": "🔀 OpenRouter",
     "freemodel": "🆓 FreeModel",
+    "openmodel": "🌐 OpenModel",
 }
 
 
