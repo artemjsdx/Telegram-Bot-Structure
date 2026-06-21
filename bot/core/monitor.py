@@ -42,15 +42,27 @@ async def handle_channel_post(update: Update, context: ContextTypes.DEFAULT_TYPE
     if not agent:
         return
 
+    # Forwarded posts carry a "Forwarded from" header and aren't the channel's
+    # own content, so leave them untouched — the agent must not react to them.
+    if msg.forward_origin is not None:
+        logger.info("Skipping forwarded post in channel %s", channel_id)
+        return
+
     user_id = agent["user_id"]
     user = await get_user(user_id)
     if not user or user.get("is_banned"):
         return
 
-    post_text = msg.text or msg.caption or ""
-    if not post_text.strip():
+    post_plain = msg.text or msg.caption or ""
+    if not post_plain.strip():
         logger.info("Skipping empty post in channel %s", channel_id)
         return
+
+    # Give the model the post with its original Telegram formatting rendered as
+    # HTML (bold, italic, underline, strikethrough, spoiler, code, links, custom
+    # emoji, …) so it can choose which styling to preserve; falls back to plain
+    # text when the post has no entities.
+    post_html = msg.text_html or msg.caption_html or post_plain
 
     prompt = agent.get("user_prompt") or ""
 
@@ -61,7 +73,10 @@ async def handle_channel_post(update: Update, context: ContextTypes.DEFAULT_TYPE
             content_parts.append(
                 f"[SYSTEM INSTRUCTIONS]\n{sys_text}\n[/SYSTEM INSTRUCTIONS]\n"
             )
-    content_parts.append(f"{prompt}\n\nPost:\n{post_text}")
+    content_parts.append(
+        f"{prompt}\n\nPost (original Telegram HTML formatting — keep the styling "
+        f"you don't change):\n{post_html}"
+    )
     messages = [{"role": "user", "content": "\n".join(content_parts)}]
 
     creds = resolve_creds_from_agent(agent)
@@ -71,7 +86,7 @@ async def handle_channel_post(update: Update, context: ContextTypes.DEFAULT_TYPE
     logger.info(
         "Processing post chan=%s agent=%s provider=%s model=%s preview=%s len=%d",
         channel_id, agent["agent_id"], provider_name, model,
-        bool(user.get("preview_mode")), len(post_text),
+        bool(user.get("preview_mode")), len(post_plain),
     )
 
     t0 = time.monotonic()

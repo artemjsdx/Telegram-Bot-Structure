@@ -628,12 +628,15 @@ async def got_broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
     user, lang = await _guard(update)
     if user is None:
         return ConversationHandler.END
-    text = (update.message.text or "").strip()
-    if not text:
+    msg = update.message
+    if not (msg.text or "").strip():
         return T_BROADCAST
-    context.user_data["broadcast_text"] = text
-    await update.message.reply_html(
-        f"📢\n\n{html.escape(text)}",
+    # Keep the admin's formatting ("fonts") by carrying the raw text plus its
+    # entities; entities survive the broadcast verbatim, including custom emoji.
+    context.user_data["broadcast_text"] = msg.text
+    context.user_data["broadcast_entities"] = msg.entities
+    await msg.reply_html(
+        f"📢\n\n{msg.text_html}",
         reply_markup=confirm_kb("admin:bc_yes", "menu:admin", lang),
     )
     return ConversationHandler.END
@@ -644,6 +647,7 @@ async def on_broadcast_yes(update: Update, context: ContextTypes.DEFAULT_TYPE) -
     if user is None:
         return
     text = context.user_data.pop("broadcast_text", "")
+    entities = context.user_data.pop("broadcast_entities", None)
     q = update.callback_query
     if not text:
         await q.answer()
@@ -657,7 +661,7 @@ async def on_broadcast_yes(update: Update, context: ContextTypes.DEFAULT_TYPE) -
         if u.get("is_banned"):
             continue
         try:
-            await context.bot.send_message(u["user_id"], text)
+            await context.bot.send_message(u["user_id"], text, entities=entities)
             ok += 1
         except Forbidden:
             # User has blocked/removed the bot — record it for the leave stats.
