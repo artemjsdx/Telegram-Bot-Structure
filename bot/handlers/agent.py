@@ -434,6 +434,17 @@ async def on_bind_forward(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     if not aid:
         return ConversationHandler.END
 
+    # Guard against binding to an agent that no longer exists (stale id in the
+    # shared user_data). Otherwise the channel silently attaches to a ghost agent
+    # and never shows up — looking like the binding "disappeared".
+    if not await get_agent(aid):
+        context.user_data.clear()
+        await msg.reply_html(
+            t(lang, "agent_gone"),
+            reply_markup=InlineKeyboardMarkup([[home_btn(lang)]]),
+        )
+        return ConversationHandler.END
+
     result = await verify_forwarded_channel(msg, context.bot)
     if result is None:
         await msg.reply_text(t(lang, "channel_not_forwarded"))
@@ -601,6 +612,15 @@ async def addchan_forward(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     if not aid:
         return ConversationHandler.END
 
+    # The agent may have been deleted while we waited for the forward.
+    if not await get_agent(aid):
+        context.user_data.pop("addchan_agent_id", None)
+        await msg.reply_html(
+            t(lang, "agent_gone"),
+            reply_markup=InlineKeyboardMarkup([[home_btn(lang)]]),
+        )
+        return ConversationHandler.END
+
     result = await verify_forwarded_channel(msg, context.bot)
     if result is None:
         await msg.reply_text(t(lang, "channel_not_forwarded"))
@@ -740,19 +760,16 @@ def _post_html(msg) -> str:
     return h.replace('<span class="tg-spoiler">', "<tg-spoiler>").replace("</span>", "</tg-spoiler>")
 
 
-def _suggest_messages(posts: list[str], char_mode: str = "unified",
-                      base_mode: str = "scratch", current_prompt: str = "") -> list[dict]:
+def _suggest_messages(posts: list[str], char_mode: str = "unified") -> list[dict]:
     """
     Build the meta-prompt that turns forwarded posts of the SAME channel into a
-    reusable, TOPIC-AGNOSTIC preset. Two axes shape the instruction:
+    reusable, TOPIC-AGNOSTIC preset. One axis shapes the instruction:
       char_mode: "unified"   → one common form for every post;
                  "scenarios" → several IF-THEN scenarios + a default fallback.
-      base_mode: "scratch"   → write the preset from zero;
-                 "extend"    → refine `current_prompt`, keeping its good parts.
-    Several samples let the model infer the channel's real form, not one quirk.
+    The preset is always written from scratch. Several samples let the model infer
+    the channel's real form, not one quirk.
     """
-    extending = base_mode == "extend" and bool(current_prompt.strip())
-    budget = (6000 if extending else 9000) // max(1, len(posts))
+    budget = 9000 // max(1, len(posts))
     blocks = []
     for i, p in enumerate(posts, 1):
         blocks.append(
@@ -787,18 +804,6 @@ def _suggest_messages(posts: list[str], char_mode: str = "unified",
             "применимый ко всем будущим постам канала. Не дроби на сценарии.\n\n"
         )
 
-    if extending:
-        base = (
-            "➕ РЕЖИМ «К ТЕКУЩЕМУ». У агента уже есть рабочий пресет (ниже). НЕ пиши с нуля: возьми "
-            "его за основу, сохрани его суть и удачные формулировки и аккуратно дополни/уточни по "
-            "новым образцам — добавь недостающие приёмы, поправь неточности, убери явные ошибки. "
-            "Не выбрасывай рабочие части без причины. Верни ЦЕЛЬНУЮ обновлённую версию пресета "
-            "целиком (а не список правок).\n\n"
-            f"[ТЕКУЩИЙ ПРЕСЕТ АГЕНТА]\n{current_prompt.strip()[:3000]}\n[/ТЕКУЩИЙ ПРЕСЕТ АГЕНТА]\n\n"
-        )
-    else:
-        base = ""
-
     guard = (
         "⚠️ КРИТИЧЕСКИ ВАЖНО (тема): канал публикует посты на САМЫЕ РАЗНЫЕ темы (крипта, мемы, "
         "личное мнение, новости и т.п.). Образцы показывают ФОРМУ, а не тему. Пресет должен "
@@ -829,7 +834,7 @@ def _suggest_messages(posts: list[str], char_mode: str = "unified",
         "ФОРМУ, конкретная и применимая к ЛЮБОЙ теме.\n\n"
     )
 
-    return [{"role": "user", "content": head + task + base + guard + tail + samples}]
+    return [{"role": "user", "content": head + task + guard + tail + samples}]
 
 
 async def _resolve_creds_for_flow(context: ContextTypes.DEFAULT_TYPE) -> dict | None:
@@ -853,19 +858,6 @@ async def _resolve_creds_for_flow(context: ContextTypes.DEFAULT_TYPE) -> dict | 
         "api_key": context.user_data.get("agent_key", ""),
         "model": context.user_data.get("agent_model", ""),
     }
-
-
-async def _current_prompt_for_flow(context: ContextTypes.DEFAULT_TYPE) -> str:
-    """
-    The agent's existing prompt for the "➕ extend" base mode, resolved per flow:
-      edit flow → the agent's stored user_prompt; create flow → whatever prompt the
-    wizard has already stashed (usually empty). Empty string means nothing to extend.
-    """
-    eid = context.user_data.get("edit_agent_id")
-    if eid:
-        agent = await get_agent(eid)
-        return (agent or {}).get("user_prompt") or ""
-    return context.user_data.get("agent_prompt") or ""
 
 
 async def _build_preset_items(context: ContextTypes.DEFAULT_TYPE,
@@ -924,8 +916,7 @@ async def _apply_body(update: Update, context: ContextTypes.DEFAULT_TYPE, body: 
     context.user_data["agent_prompt"] = body
     for k in ("preset_items", "preset_labels", "preset_sel_body",
               "preset_suggested", "plib_mode", "plib_new_name", "preset_page",
-              "preset_mode_char", "preset_mode_base", "preset_mode_current",
-              "preset_fwd_posts", "preset_fwd_msg"):
+              "preset_mode_char", "preset_fwd_posts", "preset_fwd_msg"):
         context.user_data.pop(k, None)
     text = t(lang, "agent_sys_title")
     kb = _sys_kb(context.user_data.get("agent_sys", True), lang)
@@ -1121,28 +1112,24 @@ async def preset_collect_cancel(update: Update, context: ContextTypes.DEFAULT_TY
     q = update.callback_query
     await q.answer()
     lang = _lang(context)
-    for k in ("plib_mode", "preset_fwd_posts", "preset_fwd_msg",
-              "preset_mode_char", "preset_mode_base", "preset_mode_current"):
+    for k in ("plib_mode", "preset_fwd_posts", "preset_fwd_msg", "preset_mode_char"):
         context.user_data.pop(k, None)
     return await _render_library(q, context, lang, context.user_data.get("preset_page", 0))
 
 
 async def _render_mode_picker(q, context: ContextTypes.DEFAULT_TYPE, lang: str) -> None:
-    """(Re)draw the two-toggle picker on `q`'s message."""
+    """(Re)draw the character picker on `q`'s message."""
     char = context.user_data.get("preset_mode_char", "unified")
-    base = context.user_data.get("preset_mode_base", "scratch")
-    has_current = bool((context.user_data.get("preset_mode_current") or "").strip())
     n = len(context.user_data.get("preset_fwd_posts", []))
-    note = "" if has_current else t(lang, "preset_mode_no_current")
     await q.edit_message_text(
-        t(lang, "preset_mode_title", n=n, note=note),
+        t(lang, "preset_mode_title", n=n),
         parse_mode=ParseMode.HTML,
-        reply_markup=preset_mode_kb(char, base, lang),
+        reply_markup=preset_mode_kb(char, lang),
     )
 
 
 async def preset_show_modes(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    """⚡️ Create → show the character/base picker instead of generating at once."""
+    """⚡️ Create → show the character picker instead of generating at once."""
     q = update.callback_query
     lang = _lang(context)
     posts = context.user_data.get("preset_fwd_posts", [])
@@ -1161,8 +1148,6 @@ async def preset_show_modes(update: Update, context: ContextTypes.DEFAULT_TYPE) 
 
     await q.answer()
     context.user_data.setdefault("preset_mode_char", "unified")
-    context.user_data.setdefault("preset_mode_base", "scratch")
-    context.user_data["preset_mode_current"] = await _current_prompt_for_flow(context)
     context.user_data.pop("preset_fwd_msg", None)
     await _render_mode_picker(q, context, lang)
     return A_PROMPT
@@ -1176,22 +1161,6 @@ async def preset_mode_set_char(update: Update, context: ContextTypes.DEFAULT_TYP
         await q.answer()
         return A_PROMPT
     context.user_data["preset_mode_char"] = val
-    await q.answer()
-    await _render_mode_picker(q, context, lang)
-    return A_PROMPT
-
-
-async def preset_mode_set_base(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    q = update.callback_query
-    lang = _lang(context)
-    val = q.data.split(":")[2]
-    if val == "extend" and not (context.user_data.get("preset_mode_current") or "").strip():
-        await q.answer(t(lang, "preset_mode_no_current_toast"), show_alert=True)
-        return A_PROMPT
-    if val not in ("scratch", "extend") or val == context.user_data.get("preset_mode_base", "scratch"):
-        await q.answer()
-        return A_PROMPT
-    context.user_data["preset_mode_base"] = val
     await q.answer()
     await _render_mode_picker(q, context, lang)
     return A_PROMPT
@@ -1216,8 +1185,6 @@ async def preset_collect_create(update: Update, context: ContextTypes.DEFAULT_TY
         return A_PROMPT
 
     char_mode = context.user_data.get("preset_mode_char", "unified")
-    base_mode = context.user_data.get("preset_mode_base", "scratch")
-    current_prompt = context.user_data.get("preset_mode_current") or ""
 
     await q.answer()
     for k in ("plib_mode", "preset_fwd_msg"):
@@ -1227,7 +1194,7 @@ async def preset_collect_create(update: Update, context: ContextTypes.DEFAULT_TY
     )
 
     prov = get_provider(creds["provider"])
-    messages = _suggest_messages(posts, char_mode, base_mode, current_prompt)
+    messages = _suggest_messages(posts, char_mode)
     try:
         result = await queue.enqueue(
             lambda: prov.chat(creds["api_base"], creds["api_key"], creds["model"], messages)
@@ -1249,7 +1216,7 @@ async def preset_collect_create(update: Update, context: ContextTypes.DEFAULT_TY
         return A_PROMPT
 
     context.user_data["preset_suggested"] = result
-    for k in ("preset_fwd_posts", "preset_mode_char", "preset_mode_base", "preset_mode_current"):
+    for k in ("preset_fwd_posts", "preset_mode_char"):
         context.user_data.pop(k, None)
     disp = html.escape(result)
     if len(disp) > 3500:
@@ -1359,7 +1326,6 @@ def _preset_state_handlers() -> list:
         CallbackQueryHandler(preset_fwd_start, pattern=r"^apreset:fwd$"),
         CallbackQueryHandler(preset_show_modes, pattern=r"^apreset:gen$"),
         CallbackQueryHandler(preset_mode_set_char, pattern=r"^apreset:mchar:(unified|scenarios)$"),
-        CallbackQueryHandler(preset_mode_set_base, pattern=r"^apreset:mbase:(scratch|extend)$"),
         CallbackQueryHandler(preset_collect_create, pattern=r"^apreset:gendo$"),
         CallbackQueryHandler(preset_collect_cancel, pattern=r"^apreset:fwdcancel$"),
         CallbackQueryHandler(preset_suggest_apply, pattern=r"^apreset:sapply$"),

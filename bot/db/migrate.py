@@ -125,9 +125,40 @@ NEW_TABLE_SQL: list[str] = [
 ]
 
 
+# Marks that the one-time data backfills (legacy single-channel → channels,
+# user creds → provider_configs, users → default agents) have run. Stored in the
+# `settings` KV table so they run EXACTLY ONCE instead of on every boot.
+SCHEMA_FLAG_KEY = "schema_v2_data_migrated"
+
+
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
+async def _get_flag(db: aiosqlite.Connection, key: str) -> Optional[str]:
+    async with db.execute("SELECT value FROM settings WHERE key=?", (key,)) as cur:
+        row = await cur.fetchone()
+        return row[0] if row else None
+
+
+async def _set_flag(db: aiosqlite.Connection, key: str, value: str) -> None:
+    await db.execute(
+        "INSERT INTO settings (key, value) VALUES (?,?) "
+        "ON CONFLICT(key) DO UPDATE SET value=excluded.value",
+        (key, value),
+    )
+
+
+async def _clear_legacy_single_channel(db: aiosqlite.Connection) -> None:
+    """
+    Null out the obsolete users.channel_id once its data has been copied into the
+    channels table. Leaving it set made _migrate_old_channel_data re-run on every
+    boot (the recurring "Migrated N users" log), which re-seeded orphan channels
+    and, together with _migrate_users_to_agents, resurrected auto-created agents.
+    """
+    if "channel_id" in await _get_columns(db, "users"):
+        await db.execute("UPDATE users SET channel_id=NULL WHERE channel_id IS NOT NULL")
+
 
 async def _get_columns(db: aiosqlite.Connection, table: str) -> set[str]:
     async with db.execute(f"PRAGMA table_info({table})") as cur:
@@ -251,13 +282,16 @@ async def _migrate_users_to_agents(db: aiosqlite.Connection) -> None:
     if not await _table_exists(db, "channels"):
         return
 
-    # Users who have at least one channel not yet bound to an agent.
+    # Users who have at least one ACTIVE channel not yet bound to an agent.
+    # The active=1 filter is critical: without it a soft-deleted channel
+    # (active=0, agent_id=NULL — left behind when the user deletes an agent)
+    # would be re-adopted here, resurrecting a phantom "Агент 1" on every run.
     async with db.execute(
         """
         SELECT DISTINCT c.user_id
         FROM channels c
         JOIN users u ON u.user_id = c.user_id
-        WHERE c.agent_id IS NULL AND u.setup_done=1
+        WHERE c.agent_id IS NULL AND c.active=1 AND u.setup_done=1
         """
     ) as cur:
         user_ids = [row[0] for row in await cur.fetchall()]
@@ -304,7 +338,8 @@ async def _migrate_users_to_agents(db: aiosqlite.Connection) -> None:
         )
         agent_id = cur2.lastrowid
         await db.execute(
-            "UPDATE channels SET agent_id=? WHERE user_id=? AND agent_id IS NULL",
+            "UPDATE channels SET agent_id=? "
+            "WHERE user_id=? AND agent_id IS NULL AND active=1",
             (agent_id, user_id),
         )
         created += 1
@@ -353,15 +388,29 @@ async def run_migrations() -> None:
         for sql in NEW_TABLE_SQL:
             await db.execute(sql)
 
-        # Step 3: Migrate old single-channel data
-        await _migrate_old_channel_data(db)
+        # Steps 3-5 are ONE-TIME data backfills. They are idempotent in spirit,
+        # but re-running them every boot churned live data (re-seeding orphan
+        # channels, resurrecting auto-created agents), which is what made bound
+        # channels "disappear". Guard them behind a settings flag so they run once.
+        if await _get_flag(db, SCHEMA_FLAG_KEY) != "1":
+            log.info("Running one-time data migrations…")
+            # Step 3: Migrate old single-channel data → channels table
+            await _migrate_old_channel_data(db)
 
-        # Step 4: Seed per-provider credentials + created_at
-        await _migrate_creds_to_provider_configs(db)
-        await _seed_created_at(db)
+            # Step 4: Seed per-provider credentials + created_at
+            await _migrate_creds_to_provider_configs(db)
+            await _seed_created_at(db)
 
-        # Step 5: Turn configured users into default agents + bind channels
-        await _migrate_users_to_agents(db)
+            # Step 5: Turn configured users into default agents + bind channels
+            await _migrate_users_to_agents(db)
+
+            # Retire the legacy pointer so it can never re-trigger backfills, and
+            # stamp the flag so this whole block is skipped on subsequent boots.
+            await _clear_legacy_single_channel(db)
+            await _set_flag(db, SCHEMA_FLAG_KEY, "1")
+            log.info("One-time data migrations complete — flag set.")
+        else:
+            log.info("Data migrations already applied — skipping.")
 
         await db.commit()
 

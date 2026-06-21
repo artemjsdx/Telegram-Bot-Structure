@@ -71,8 +71,6 @@ TEXTS: dict[str, dict[str, str]] = {
             "  ▫️ <b>🎭 Характер:</b> <b>Единый</b> — один общий стиль на все посты; "
             "<b>🎬 Сценарии</b> — разные правила под разные типы постов плюс стиль по "
             "умолчанию (берите, если постов много и они разные).\n"
-            "  ▫️ <b>📦 Основа:</b> <b>🆕 С нуля</b> — новый промпт; <b>➕ К текущему</b> — "
-            "доработать нынешний промпт агента новыми примерами.\n"
             "3. ИИ предложит промпт: <b>✅ Применить</b>, <b>💾 Сохранить и применить</b> "
             "(добавит в ваши пресеты) или <b>❌ Отклонить</b>.\n\n"
 
@@ -194,14 +192,7 @@ TEXTS: dict[str, dict[str, str]] = {
         # --- AI generation mode picker (two toggles) ---
         "preset_mode_char_unified": "🎭 Единый",
         "preset_mode_char_scenarios": "🎬 Сценарии",
-        "preset_mode_base_scratch": "🆕 С нуля",
-        "preset_mode_base_extend": "➕ К текущему",
         "preset_mode_gen_btn": "⚡️ Сгенерировать",
-        "preset_mode_no_current": (
-            "\n\n⚠️ У агента ещё нет промпта, поэтому «➕ К текущему» недоступно — "
-            "пресет будет создан с нуля."
-        ),
-        "preset_mode_no_current_toast": "У агента ещё нет промпта — дополнять нечего, выбран режим «С нуля».",
         "preset_mode_title": (
             "⚙️ <b>Настройка генерации</b>\n"
             "Собрано постов: <b>{n}</b>. Выберите, как ИИ соберёт пресет.\n\n"
@@ -212,16 +203,8 @@ TEXTS: dict[str, dict[str, str]] = {
             "• <b>🎬 Сценарии</b> — ИИ заметит, что посты бывают РАЗНЫЕ (новость, рассуждение, "
             "реклама, анонс…), и пропишет правила «если пост такой — оформляй так», плюс стиль "
             "по умолчанию. Лучше всего, когда вы прислали много постов РАЗНЫХ типов.\n\n"
-            "<b>📦 Основа</b> — с чего начинать:\n"
-            "• <b>🆕 С нуля</b> — ИИ напишет новый пресет, не оглядываясь на текущий. Берите для "
-            "нового агента или когда хотите полностью обновить стиль.\n"
-            "• <b>➕ К текущему</b> — ИИ возьмёт нынешний промпт агента за основу и аккуратно "
-            "дополнит его новыми примерами, сохранив удачное. Берите, когда стиль уже почти "
-            "нравится и его надо лишь докрутить.\n\n"
-            "💡 <b>Совет.</b> Для самого точного результата: прислали 10+ постов разных типов — "
-            "берите <b>🎬 Сценарии</b>; стиль ровный и однотипный — <b>🎭 Единый</b>. "
-            "Настраиваете агента впервые — <b>🆕 С нуля</b>; шлифуете рабочий промпт — "
-            "<b>➕ К текущему</b>.{note}\n\n"
+            "💡 <b>Совет.</b> Прислали 10+ постов разных типов — берите <b>🎬 Сценарии</b>; "
+            "стиль ровный и однотипный — <b>🎭 Единый</b>.\n\n"
             "Когда выберете — нажмите «⚡️ Сгенерировать»."
         ),
         "preset_analyzing": "🔮 Анализирую пост… это займёт несколько секунд.",
@@ -305,6 +288,7 @@ TEXTS: dict[str, dict[str, str]] = {
         "agent_skip_setup": "⏭ Пропустить настройку",
         "agent_ready": "✅ Агент готов! Канал «{title}» привязан.",
         "agent_ready_nochan": "✅ Агент готов! Канал можно привязать позже из его карточки.",
+        "agent_gone": "⚠️ Этот агент уже удалён, привязывать канал не к чему. Откройте меню и выберите агента заново.",
         "agent_addchan_howto": (
             "➕ <b>Привязка канала</b>\n\n"
             "Перешлите сюда любой пост из нужного канала.\n"
@@ -551,8 +535,6 @@ TEXTS: dict[str, dict[str, str]] = {
             "  ▫️ <b>🎭 Character:</b> <b>Unified</b> — one common style for all posts; "
             "<b>🎬 Scenarios</b> — different rules for different post types plus a default "
             "style (use it when you sent many, varied posts).\n"
-            "  ▫️ <b>📦 Base:</b> <b>🆕 From scratch</b> — a new prompt; <b>➕ Extend "
-            "current</b> — refine the agent's current prompt with new examples.\n"
             "3. The AI suggests a prompt: <b>✅ Apply</b>, <b>💾 Save &amp; apply</b> "
             "(adds it to your presets) or <b>❌ Discard</b>.\n\n"
 
@@ -671,14 +653,7 @@ TEXTS: dict[str, dict[str, str]] = {
         # --- AI generation mode picker (two toggles) ---
         "preset_mode_char_unified": "🎭 Unified",
         "preset_mode_char_scenarios": "🎬 Scenarios",
-        "preset_mode_base_scratch": "🆕 From scratch",
-        "preset_mode_base_extend": "➕ Extend current",
         "preset_mode_gen_btn": "⚡️ Generate",
-        "preset_mode_no_current": (
-            "\n\n⚠️ The agent has no prompt yet, so “➕ Extend current” is unavailable — "
-            "the preset will be built from scratch."
-        ),
-        "preset_mode_no_current_toast": "The agent has no prompt yet — nothing to extend, “From scratch” selected.",
         "preset_mode_title": (
             "⚙️ <b>Generation setup</b>\n"
             "Posts collected: <b>{n}</b>. Choose how the AI builds the preset.\n\n"
@@ -689,16 +664,8 @@ TEXTS: dict[str, dict[str, str]] = {
             "• <b>🎬 Scenarios</b> — the AI notices that posts DIFFER (news, reflection, ad, "
             "announcement…) and writes “if the post is like this — format it that way” rules "
             "plus a default style. Best when you sent many posts of DIFFERENT types.\n\n"
-            "<b>📦 Base</b> — where to start:\n"
-            "• <b>🆕 From scratch</b> — the AI writes a new preset ignoring the current one. "
-            "Use for a new agent or a full style refresh.\n"
-            "• <b>➕ Extend current</b> — the AI takes the agent's current prompt as a base and "
-            "carefully extends it with new examples, keeping what works. Use when the style is "
-            "almost right and only needs polishing.\n\n"
-            "💡 <b>Tip.</b> For the most accurate result: 10+ posts of different types — pick "
-            "<b>🎬 Scenarios</b>; a steady, uniform style — <b>🎭 Unified</b>. Setting up an "
-            "agent for the first time — <b>🆕 From scratch</b>; polishing a working prompt — "
-            "<b>➕ Extend current</b>.{note}\n\n"
+            "💡 <b>Tip.</b> 10+ posts of different types — pick <b>🎬 Scenarios</b>; "
+            "a steady, uniform style — <b>🎭 Unified</b>.\n\n"
             "When ready, tap “⚡️ Generate”."
         ),
         "preset_analyzing": "🔮 Analyzing the post… this takes a few seconds.",
@@ -781,6 +748,7 @@ TEXTS: dict[str, dict[str, str]] = {
         "agent_skip_setup": "⏭ Skip setup",
         "agent_ready": "✅ Agent ready! Channel \"{title}\" linked.",
         "agent_ready_nochan": "✅ Agent ready! You can link a channel later from its card.",
+        "agent_gone": "⚠️ This agent was already deleted — there's nothing to link the channel to. Open the menu and pick an agent again.",
         "agent_addchan_howto": (
             "➕ <b>Link a channel</b>\n\n"
             "Forward any post from the channel here.\n"
