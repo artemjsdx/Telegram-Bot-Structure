@@ -42,14 +42,16 @@ from db.storage import (
     create_agent, get_agent, get_agents_for_user, update_agent, delete_agent,
     add_channel_to_agent, remove_channel_from_agent, get_channels_for_agent,
     create_user_preset, get_user_presets, get_user_preset, delete_user_preset,
+    get_user_by_handle, create_preset_share, set_preset_share_status,
 )
+from telegram.error import Forbidden
 from handlers.channel import verify_forwarded_channel
 from handlers.menu import nav, is_admin, send_main_menu
 from keyboards.factory import (
     agents_list_kb, agent_card_kb, agent_channels_kb, agent_provider_kb,
     model_kb, confirm_kb, home_btn, PROVIDER_LABELS,
     preset_lib_kb, preset_detail_kb, preset_suggest_kb, preset_collect_kb,
-    preset_mode_kb,
+    preset_mode_kb, preset_share_confirm_kb, pshare_offer_kb,
 )
 from providers import get_provider
 from texts import t
@@ -972,13 +974,15 @@ async def preset_view(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
         body = get_preset(name)
         delete_cb = None
     context.user_data["preset_sel_body"] = body
+    context.user_data["preset_sel_name"] = name
     disp = html.escape(body)
     if len(disp) > 3500:
         disp = disp[:3500] + "…"
     await q.edit_message_text(
         t(lang, "preset_detail", name=html.escape(name), body=disp),
         parse_mode=ParseMode.HTML,
-        reply_markup=preset_detail_kb(lang, "apreset:apply", "apreset:back", delete_cb),
+        reply_markup=preset_detail_kb(
+            lang, "apreset:apply", "apreset:back", delete_cb, share_cb="apreset:share"),
     )
     return A_PROMPT
 
@@ -1009,6 +1013,100 @@ async def preset_apply(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
     await q.answer(t(lang, "prompt_preset_applied"))
     body = context.user_data.get("preset_sel_body", "")
     return await _apply_body(update, context, body)
+
+
+# ───── Share a preset with another bot member ─────
+def _who_label(u: dict) -> str:
+    """A readable handle for a recipient: @username → name → numeric id."""
+    if u.get("username"):
+        return "@" + u["username"]
+    if u.get("first_name"):
+        return html.escape(u["first_name"])
+    return str(u.get("user_id"))
+
+
+def _share_back_kb(lang: str) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup([[InlineKeyboardButton(
+        t(lang, "pshare_back_btn"), callback_data="apreset:back")]])
+
+
+async def preset_share_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """📨 Share on a preset detail → ask for the recipient's id/@username."""
+    q = update.callback_query
+    await q.answer()
+    lang = _lang(context)
+    if not context.user_data.get("preset_sel_body"):
+        return await _render_library(q, context, lang, context.user_data.get("preset_page", 0))
+    context.user_data["plib_mode"] = "share_lookup"
+    name = context.user_data.get("preset_sel_name", "")
+    await q.edit_message_text(
+        t(lang, "preset_share_ask", name=html.escape(name)),
+        parse_mode=ParseMode.HTML, reply_markup=_share_back_kb(lang),
+    )
+    return A_PROMPT
+
+
+async def preset_share_back(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """◀️ on the confirm screen → back to the recipient lookup."""
+    q = update.callback_query
+    await q.answer()
+    lang = _lang(context)
+    context.user_data["plib_mode"] = "share_lookup"
+    name = context.user_data.get("preset_sel_name", "")
+    await q.edit_message_text(
+        t(lang, "preset_share_ask", name=html.escape(name)),
+        parse_mode=ParseMode.HTML, reply_markup=_share_back_kb(lang),
+    )
+    return A_PROMPT
+
+
+async def preset_share_cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """❌ Cancel the share flow → end the conversation, back to the main menu."""
+    context.user_data.clear()
+    await send_main_menu(update, context)
+    return ConversationHandler.END
+
+
+async def preset_share_send(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """📤 Confirm → record the offer and notify the recipient."""
+    q = update.callback_query
+    lang = _lang(context)
+    to_user = context.user_data.get("share_to")
+    name = context.user_data.get("preset_sel_name", "")
+    body = context.user_data.get("preset_sel_body", "")
+    if not to_user or not body:
+        await q.answer(t(lang, "pshare_stale"), show_alert=True)
+        return await _render_library(q, context, lang, context.user_data.get("preset_page", 0))
+    await q.answer()
+    sender = await get_user(q.from_user.id)
+    sender_label = _who_label(sender) if sender else str(q.from_user.id)
+    recipient = await get_user(to_user)
+    who = _who_label(recipient) if recipient else str(to_user)
+    rlang = context.user_data.get("share_to_lang", DEFAULT_LANG)
+    share_id = await create_preset_share(q.from_user.id, to_user, name, body)
+    try:
+        await context.bot.send_message(
+            chat_id=to_user,
+            text=t(rlang, "preset_share_recv", sender=sender_label, name=html.escape(name)),
+            parse_mode=ParseMode.HTML,
+            reply_markup=pshare_offer_kb(share_id, rlang),
+        )
+    except Forbidden:
+        await set_preset_share_status(share_id, "failed")
+        await q.edit_message_text(
+            t(lang, "preset_share_fail"), parse_mode=ParseMode.HTML,
+            reply_markup=_share_back_kb(lang),
+        )
+        return A_PROMPT
+    for k in ("share_to", "share_to_lang", "plib_mode"):
+        context.user_data.pop(k, None)
+    await q.edit_message_text(
+        t(lang, "preset_share_sent", name=html.escape(name), who=who),
+        parse_mode=ParseMode.HTML,
+        reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(
+            t(lang, "preset_back"), callback_data="apreset:back")]]),
+    )
+    return A_PROMPT
 
 
 # ───── Create own preset (name → body) ─────
@@ -1266,10 +1364,34 @@ async def _plib_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
     message, or None to let the normal prompt-save logic run.
     """
     mode = context.user_data.get("plib_mode")
-    if mode not in ("new_name", "new_body", "save_name"):
+    if mode not in ("new_name", "new_body", "save_name", "share_lookup"):
         return None
     lang = _lang(context)
     text = (update.message.text or "").strip()
+
+    if mode == "share_lookup":
+        name = context.user_data.get("preset_sel_name", "")
+        if not text:
+            await update.message.reply_text(
+                t(lang, "preset_share_ask", name=html.escape(name)), parse_mode=ParseMode.HTML)
+            return A_PROMPT
+        target = await get_user_by_handle(text)
+        if not target:
+            await update.message.reply_text(t(lang, "preset_share_notfound"), parse_mode=ParseMode.HTML)
+            return A_PROMPT
+        if target["user_id"] == update.effective_user.id:
+            await update.message.reply_text(t(lang, "preset_share_self"), parse_mode=ParseMode.HTML)
+            return A_PROMPT
+        if not target.get("accept_presets", 1):
+            await update.message.reply_text(t(lang, "preset_share_blocked"), parse_mode=ParseMode.HTML)
+            return A_PROMPT
+        context.user_data["share_to"] = target["user_id"]
+        context.user_data["share_to_lang"] = target.get("lang") or DEFAULT_LANG
+        await update.message.reply_text(
+            t(lang, "preset_share_confirm", name=html.escape(name), who=_who_label(target)),
+            parse_mode=ParseMode.HTML, reply_markup=preset_share_confirm_kb(lang),
+        )
+        return A_PROMPT
 
     if mode == "new_name":
         if not text:
@@ -1332,6 +1454,10 @@ def _preset_state_handlers() -> list:
         CallbackQueryHandler(preset_suggest_save, pattern=r"^apreset:ssave$"),
         CallbackQueryHandler(preset_suggest_discard, pattern=r"^apreset:sdiscard$"),
         CallbackQueryHandler(preset_apply, pattern=r"^apreset:apply$"),
+        CallbackQueryHandler(preset_share_start, pattern=r"^apreset:share$"),
+        CallbackQueryHandler(preset_share_send, pattern=r"^apreset:shsend$"),
+        CallbackQueryHandler(preset_share_back, pattern=r"^apreset:shback$"),
+        CallbackQueryHandler(preset_share_cancel, pattern=r"^apreset:shcancel$"),
         CallbackQueryHandler(preset_back, pattern=r"^apreset:back$"),
         CallbackQueryHandler(preset_exit, pattern=r"^apreset:exit$"),
         CallbackQueryHandler(preset_delete_yes, pattern=r"^apreset:delyes:\d+$"),

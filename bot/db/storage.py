@@ -373,6 +373,67 @@ async def delete_user_preset(preset_id: int) -> None:
         await db.commit()
 
 
+# ---------------------------------------------------------------------------
+# Preset sharing (send a preset to another bot user, who accepts/rejects it)
+# ---------------------------------------------------------------------------
+
+async def get_user_by_handle(handle: str) -> Optional[dict]:
+    """
+    Resolve a recipient typed as @username or a numeric user_id to a user row.
+    Only users the bot already knows (have a row) can receive a preset — this is
+    how we enforce "the recipient must be a bot member". Returns None if unknown.
+    """
+    h = (handle or "").strip()
+    if not h:
+        return None
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        if h.lstrip("@").isdigit() and not h.startswith("@"):
+            async with db.execute(
+                "SELECT * FROM users WHERE user_id=?", (int(h),)
+            ) as cur:
+                row = await cur.fetchone()
+        else:
+            uname = h.lstrip("@").lower()
+            async with db.execute(
+                "SELECT * FROM users WHERE LOWER(username)=? LIMIT 1", (uname,)
+            ) as cur:
+                row = await cur.fetchone()
+        return _row_to_user(row) if row else None
+
+
+async def create_preset_share(from_user: int, to_user: int, name: str, body: str) -> int:
+    """Record a pending preset offer and return its share_id."""
+    async with aiosqlite.connect(DB_PATH) as db:
+        cur = await db.execute(
+            """INSERT INTO preset_shares (from_user, to_user, name, body, status, created_at)
+               VALUES (?,?,?,?,'pending',?)""",
+            (from_user, to_user, name, body, int(time.time())),
+        )
+        await db.commit()
+        return cur.lastrowid
+
+
+async def get_preset_share(share_id: int) -> Optional[dict]:
+    """Return a preset-share row as dict, or None."""
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        async with db.execute(
+            "SELECT * FROM preset_shares WHERE share_id=?", (share_id,)
+        ) as cur:
+            row = await cur.fetchone()
+            return dict(row) if row else None
+
+
+async def set_preset_share_status(share_id: int, status: str) -> None:
+    """Mark a share as 'accepted' or 'rejected' so its buttons can't be reused."""
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute(
+            "UPDATE preset_shares SET status=? WHERE share_id=?", (status, share_id)
+        )
+        await db.commit()
+
+
 async def get_agent_by_channel(channel_id: int) -> Optional[dict]:
     """
     Find the agent that owns an active channel (replaces get_user_by_channel

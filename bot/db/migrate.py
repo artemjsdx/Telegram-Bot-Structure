@@ -44,6 +44,7 @@ COLUMN_MIGRATIONS: list[tuple[str, str, str]] = [
     ("users", "last_seen",        "INTEGER DEFAULT 0"),
     ("users", "blocked",          "INTEGER DEFAULT 0"),
     ("users", "blocked_at",       "INTEGER DEFAULT 0"),
+    ("users", "accept_presets",   "INTEGER DEFAULT 1"),
     ("channels", "agent_id",      "INTEGER"),
 ]
 
@@ -111,6 +112,15 @@ NEW_TABLE_SQL: list[str] = [
         body        TEXT    DEFAULT '',
         created_at  INTEGER DEFAULT 0
     )""",
+    """CREATE TABLE IF NOT EXISTS preset_shares (
+        share_id    INTEGER PRIMARY KEY AUTOINCREMENT,
+        from_user   INTEGER NOT NULL,
+        to_user     INTEGER NOT NULL,
+        name        TEXT    DEFAULT '',
+        body        TEXT    DEFAULT '',
+        status      TEXT    DEFAULT 'pending',
+        created_at  INTEGER DEFAULT 0
+    )""",
     "CREATE INDEX IF NOT EXISTS idx_channels_user ON channels(user_id)",
     "CREATE INDEX IF NOT EXISTS idx_channels_agent ON channels(agent_id)",
     "CREATE INDEX IF NOT EXISTS idx_agents_user ON agents(user_id)",
@@ -120,6 +130,7 @@ NEW_TABLE_SQL: list[str] = [
     "CREATE INDEX IF NOT EXISTS idx_provider_configs_user ON provider_configs(user_id)",
     "CREATE INDEX IF NOT EXISTS idx_request_log_ts ON request_log(ts)",
     "CREATE INDEX IF NOT EXISTS idx_user_presets_user ON user_presets(user_id)",
+    "CREATE INDEX IF NOT EXISTS idx_preset_shares_to ON preset_shares(to_user)",
     "CREATE INDEX IF NOT EXISTS idx_users_created_at ON users(created_at)",
     "CREATE INDEX IF NOT EXISTS idx_users_blocked_at ON users(blocked_at)",
 ]

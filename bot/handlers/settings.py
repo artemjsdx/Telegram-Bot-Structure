@@ -49,6 +49,14 @@ async def on_toggle_preview(update: Update, context: ContextTypes.DEFAULT_TYPE) 
     await _render(update, context, edit=True)
 
 
+async def on_toggle_shares(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    q = update.callback_query
+    user = await get_user(q.from_user.id)
+    await upsert_user(q.from_user.id, accept_presets=0 if (user or {}).get("accept_presets", 1) else 1)
+    await q.answer()
+    await _render(update, context, edit=True)
+
+
 async def on_lang_menu(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     q = update.callback_query
     await q.answer()
@@ -93,6 +101,7 @@ def get_settings_handlers() -> list:
         CallbackQueryHandler(show_settings, pattern=r"^menu:settings$"),
         CallbackQueryHandler(on_toggle_sys, pattern=r"^s:toggle_sys$"),
         CallbackQueryHandler(on_toggle_preview, pattern=r"^s:toggle_preview$"),
+        CallbackQueryHandler(on_toggle_shares, pattern=r"^s:toggle_shares$"),
         CallbackQueryHandler(on_lang_menu, pattern=r"^s:lang$"),
         CallbackQueryHandler(on_reset_stats_yes, pattern=r"^s:reset_stats_yes$"),
         CallbackQueryHandler(on_reset_stats, pattern=r"^s:reset_stats$"),

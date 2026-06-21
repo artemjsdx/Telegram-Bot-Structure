@@ -103,6 +103,8 @@ TEXTS: dict[str, dict[str, str]] = {
         "settings_preview_off": "👁 Предпросмотр: ВЫКЛ",
         "settings_sys_on": "🎨 Сис.промпт: ВКЛ",
         "settings_sys_off": "🎨 Сис.промпт: ВЫКЛ",
+        "settings_shares_on": "📨 Предложка пресетов: ВКЛ",
+        "settings_shares_off": "📨 Предложка пресетов: ВЫКЛ",
         "settings_reset_ctx": "♻️ Сбросить контекст",
         "settings_reset_stats": "🗑 Сбросить статистику",
         "settings_saved": "✅ Сохранено.",
@@ -166,6 +168,55 @@ TEXTS: dict[str, dict[str, str]] = {
         "preset_delete_btn": "🗑 Удалить пресет",
         "preset_delete_confirm": "🗑 Удалить пресет «{name}»? Действие необратимо.",
         "preset_deleted": "🗑 Пресет удалён.",
+        # --- preset sharing (sender side) ---
+        "preset_share_btn": "📨 Поделиться",
+        "preset_share_ask": (
+            "📨 <b>Поделиться пресетом «{name}»</b>\n\n"
+            "Пришлите <b>ID</b> или <b>@username</b> получателя.\n"
+            "<i>Получатель должен пользоваться этим ботом</i> — иначе доставить пресет не выйдет."
+        ),
+        "preset_share_notfound": (
+            "🤷 Не нашёл такого пользователя среди тех, кто запускал бота.\n"
+            "Проверьте ID/@username и пришлите ещё раз, либо нажмите «Назад»."
+        ),
+        "preset_share_self": "🙂 Это вы сами. Укажите другого получателя.",
+        "preset_share_blocked": (
+            "🚫 Этот пользователь не принимает предложку пресетов.\n"
+            "Укажите другого получателя или нажмите «Назад»."
+        ),
+        "preset_share_confirm": (
+            "📨 <b>Отправить пресет?</b>\n\n"
+            "Пресет: <b>{name}</b>\n"
+            "Получатель: {who}\n\n"
+            "Он получит уведомление и сам решит — применить, сохранить или отклонить."
+        ),
+        "preset_share_send_btn": "📤 Отправить",
+        "preset_share_sent": "✅ Пресет «{name}» отправлен пользователю {who}.",
+        "preset_share_fail": (
+            "⚠️ Не удалось доставить — похоже, пользователь остановил бота. "
+            "Попробуйте другого получателя."
+        ),
+        # --- preset sharing (recipient side) ---
+        "preset_share_recv": (
+            "📨 <b>Вам прислали пресет</b>\n\n"
+            "{sender} делится с вами пресетом <b>«{name}»</b>.\n\n"
+            "Осмотрите его, примените к своему агенту или сохраните в библиотеку."
+        ),
+        "pshare_view_btn": "👁 Осмотреть",
+        "pshare_apply_btn": "✅ Применить",
+        "pshare_save_btn": "💾 В библиотеку",
+        "pshare_reject_btn": "❌ Отклонить",
+        "pshare_back_btn": "◀️ Назад",
+        "pshare_body": "📨 <b>{name}</b>\nот {sender}\n\n{body}",
+        "pshare_pick_agent": "✅ <b>К какому агенту применить пресет «{name}»?</b>\nЭто заменит промпт выбранного агента.",
+        "pshare_no_agents": (
+            "🤖 У вас пока нет агентов. Пресет «{name}» сохранён в вашу библиотеку — "
+            "примените его при создании агента."
+        ),
+        "pshare_applied": "✅ Пресет «{name}» применён к агенту «{agent}».",
+        "pshare_saved": "💾 Пресет «{name}» добавлен в вашу библиотеку.",
+        "pshare_rejected": "❌ Вы отклонили пресет «{name}».",
+        "pshare_stale": "⚠️ Это предложение уже неактуально (обработано или отозвано).",
         # --- AI preset suggestion from a forwarded post ---
         "preset_fwd_howto": (
             "🔮 <b>Пресет из постов</b>\n\n"
@@ -566,6 +617,8 @@ TEXTS: dict[str, dict[str, str]] = {
         "settings_preview_off": "👁 Preview: OFF",
         "settings_sys_on": "🎨 System prompt: ON",
         "settings_sys_off": "🎨 System prompt: OFF",
+        "settings_shares_on": "📨 Shared presets: ON",
+        "settings_shares_off": "📨 Shared presets: OFF",
         "settings_reset_ctx": "♻️ Reset context",
         "settings_reset_stats": "🗑 Reset stats",
         "settings_saved": "✅ Saved.",
@@ -627,6 +680,55 @@ TEXTS: dict[str, dict[str, str]] = {
         "preset_delete_btn": "🗑 Delete preset",
         "preset_delete_confirm": "🗑 Delete preset “{name}”? This cannot be undone.",
         "preset_deleted": "🗑 Preset deleted.",
+        # --- preset sharing (sender side) ---
+        "preset_share_btn": "📨 Share",
+        "preset_share_ask": (
+            "📨 <b>Share preset “{name}”</b>\n\n"
+            "Send the recipient's <b>ID</b> or <b>@username</b>.\n"
+            "<i>The recipient must already use this bot</i> — otherwise the preset can't be delivered."
+        ),
+        "preset_share_notfound": (
+            "🤷 Couldn't find that user among those who started the bot.\n"
+            "Check the ID/@username and send again, or tap “Back”."
+        ),
+        "preset_share_self": "🙂 That's you. Pick a different recipient.",
+        "preset_share_blocked": (
+            "🚫 This user isn't accepting shared presets.\n"
+            "Pick a different recipient or tap “Back”."
+        ),
+        "preset_share_confirm": (
+            "📨 <b>Send the preset?</b>\n\n"
+            "Preset: <b>{name}</b>\n"
+            "Recipient: {who}\n\n"
+            "They'll get a notification and decide for themselves — apply, save or reject."
+        ),
+        "preset_share_send_btn": "📤 Send",
+        "preset_share_sent": "✅ Preset “{name}” sent to {who}.",
+        "preset_share_fail": (
+            "⚠️ Couldn't deliver — looks like the user stopped the bot. "
+            "Try another recipient."
+        ),
+        # --- preset sharing (recipient side) ---
+        "preset_share_recv": (
+            "📨 <b>Someone shared a preset with you</b>\n\n"
+            "{sender} is sharing the preset <b>“{name}”</b> with you.\n\n"
+            "Take a look, apply it to one of your agents, or save it to your library."
+        ),
+        "pshare_view_btn": "👁 View",
+        "pshare_apply_btn": "✅ Apply",
+        "pshare_save_btn": "💾 To library",
+        "pshare_reject_btn": "❌ Reject",
+        "pshare_back_btn": "◀️ Back",
+        "pshare_body": "📨 <b>{name}</b>\nfrom {sender}\n\n{body}",
+        "pshare_pick_agent": "✅ <b>Which agent should the preset “{name}” apply to?</b>\nThis will replace that agent's prompt.",
+        "pshare_no_agents": (
+            "🤖 You don't have any agents yet. The preset “{name}” has been saved to your "
+            "library — apply it when you create an agent."
+        ),
+        "pshare_applied": "✅ Preset “{name}” applied to agent “{agent}”.",
+        "pshare_saved": "💾 Preset “{name}” added to your library.",
+        "pshare_rejected": "❌ You rejected the preset “{name}”.",
+        "pshare_stale": "⚠️ This offer is no longer valid (already handled or withdrawn).",
         # --- AI preset suggestion from a forwarded post ---
         "preset_fwd_howto": (
             "🔮 <b>Preset from posts</b>\n\n"

@@ -106,6 +106,7 @@ def agent_provider_kb(lang: str = "ru") -> InlineKeyboardMarkup:
 def settings_kb(user: dict, lang: str = "ru") -> InlineKeyboardMarkup:
     sys_on = bool(user.get("sys_prompt", 1))
     preview_on = bool(user.get("preview_mode", 0))
+    shares_on = bool(user.get("accept_presets", 1))
     return InlineKeyboardMarkup([
         [InlineKeyboardButton(
             t(lang, "settings_sys_on") if sys_on else t(lang, "settings_sys_off"),
@@ -113,6 +114,9 @@ def settings_kb(user: dict, lang: str = "ru") -> InlineKeyboardMarkup:
         [InlineKeyboardButton(
             t(lang, "settings_preview_on") if preview_on else t(lang, "settings_preview_off"),
             callback_data="s:toggle_preview")],
+        [InlineKeyboardButton(
+            t(lang, "settings_shares_on") if shares_on else t(lang, "settings_shares_off"),
+            callback_data="s:toggle_shares")],
         [InlineKeyboardButton(t(lang, "settings_lang", code=lang.upper()), callback_data="s:lang")],
         [InlineKeyboardButton(t(lang, "settings_reset_stats"), callback_data="s:reset_stats")],
         [home_btn(lang)],
@@ -240,11 +244,53 @@ def preset_lib_kb(
 
 def preset_detail_kb(lang: str = "ru", apply_cb: str = "apreset:apply",
                      back_cb: str = "apreset:back",
-                     delete_cb: str | None = None) -> InlineKeyboardMarkup:
+                     delete_cb: str | None = None,
+                     share_cb: str | None = None) -> InlineKeyboardMarkup:
     rows = [[InlineKeyboardButton(t(lang, "preset_apply"), callback_data=apply_cb)]]
+    if share_cb:
+        rows.append([InlineKeyboardButton(t(lang, "preset_share_btn"), callback_data=share_cb)])
     if delete_cb:
         rows.append([InlineKeyboardButton(t(lang, "preset_delete_btn"), callback_data=delete_cb)])
     rows.append([InlineKeyboardButton(t(lang, "preset_back"), callback_data=back_cb)])
+    return InlineKeyboardMarkup(rows)
+
+
+def preset_share_confirm_kb(lang: str = "ru") -> InlineKeyboardMarkup:
+    """Sender's confirm screen: send / back to recipient lookup / cancel to home."""
+    return InlineKeyboardMarkup([
+        [InlineKeyboardButton(t(lang, "preset_share_send_btn"), callback_data="apreset:shsend")],
+        [InlineKeyboardButton(t(lang, "pshare_back_btn"), callback_data="apreset:shback")],
+        [InlineKeyboardButton(t(lang, "btn_cancel"), callback_data="apreset:shcancel")],
+    ])
+
+
+def pshare_offer_kb(share_id: int, lang: str = "ru") -> InlineKeyboardMarkup:
+    """Recipient's offer keyboard: view / apply / save / reject."""
+    return InlineKeyboardMarkup([
+        [InlineKeyboardButton(t(lang, "pshare_view_btn"), callback_data=f"pshare:view:{share_id}")],
+        [InlineKeyboardButton(t(lang, "pshare_apply_btn"), callback_data=f"pshare:apply:{share_id}"),
+         InlineKeyboardButton(t(lang, "pshare_save_btn"), callback_data=f"pshare:save:{share_id}")],
+        [InlineKeyboardButton(t(lang, "pshare_reject_btn"), callback_data=f"pshare:reject:{share_id}")],
+    ])
+
+
+def pshare_view_kb(share_id: int, lang: str = "ru") -> InlineKeyboardMarkup:
+    """Recipient's view screen: same actions + back to the offer."""
+    return InlineKeyboardMarkup([
+        [InlineKeyboardButton(t(lang, "pshare_apply_btn"), callback_data=f"pshare:apply:{share_id}"),
+         InlineKeyboardButton(t(lang, "pshare_save_btn"), callback_data=f"pshare:save:{share_id}")],
+        [InlineKeyboardButton(t(lang, "pshare_reject_btn"), callback_data=f"pshare:reject:{share_id}")],
+        [InlineKeyboardButton(t(lang, "pshare_back_btn"), callback_data=f"pshare:offer:{share_id}")],
+    ])
+
+
+def pshare_pick_agent_kb(agents: list[dict], share_id: int, lang: str = "ru") -> InlineKeyboardMarkup:
+    """Recipient picks which agent to apply the shared preset to."""
+    rows = [[InlineKeyboardButton(
+        f"🤖 {a.get('name') or a['agent_id']}",
+        callback_data=f"pshare:applyto:{share_id}:{a['agent_id']}")]
+        for a in agents]
+    rows.append([InlineKeyboardButton(t(lang, "pshare_back_btn"), callback_data=f"pshare:offer:{share_id}")])
     return InlineKeyboardMarkup(rows)
 
 
