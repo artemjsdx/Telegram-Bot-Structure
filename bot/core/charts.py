@@ -134,15 +134,19 @@ def render_daily_chart(
     # ── legend (top-right) ──
     if legend and n_series == 2:
         cols = [(MAIN_TOP, legend[0]), (ACCENT_TOP, legend[1])]
+        y_text = 40 * S
+        mw = mh = 10 * S
         lx = px1
         for color, name in reversed(cols):
             bb = d.textbbox((0, 0), name, font=f_axis)
             tw = bb[2] - bb[0]
+            # vertical center of the actual glyphs, so the marker lines up
+            cy = y_text + (bb[1] + bb[3]) / 2
             lx -= tw
-            d.text((lx, 40 * S), name, font=f_axis, fill=SUB_C)
+            d.text((lx, y_text), name, font=f_axis, fill=SUB_C)
             lx -= 14 * S
             d.rounded_rectangle(
-                [lx, 42 * S, lx + 9 * S, 51 * S], radius=3 * S, fill=color
+                [lx, cy - mh / 2, lx + mw, cy + mh / 2], radius=3 * S, fill=color
             )
             lx -= 24 * S
 
