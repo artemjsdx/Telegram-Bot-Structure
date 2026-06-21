@@ -22,6 +22,7 @@ PROVIDER_LABELS = {
     "openrouter": "🔀 OpenRouter",
     "freemodel": "🆓 FreeModel",
     "openmodel": "🌐 OpenModel",
+    "nvidia": "💚 NVIDIA",
 }
 
 
