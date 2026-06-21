@@ -1,73 +1,56 @@
 import logging
+
 from telegram import Bot, Message
 from telegram.constants import ParseMode
+from telegram.error import BadRequest
+
+from core.sanitize import strip_reasoning
 
 logger = logging.getLogger(__name__)
 
 
-async def replace_post(bot: Bot, message: Message, new_text: str):
-    """
-    Replace channel post with AI-generated text.
-    Text-only -> editMessageText (preserves views/reactions).
-    Media post  -> deleteMessage + resend with new caption.
-    """
-    chat_id = message.chat_id
-    msg_id = message.message_id
+def _is_media(message: Message) -> bool:
+    return bool(
+        message.photo or message.video or message.document
+        or message.animation or message.audio or message.voice
+    )
 
-    if message.text and not message.photo and not message.video \
-            and not message.document and not message.animation:
-        try:
+
+async def replace_post(bot: Bot, message: Message, new_text: str) -> None:
+    """
+    Replace a channel post with AI-generated text *in place*.
+
+    The post is NEVER deleted: a text post is edited via editMessageText, a
+    media/file post via editMessageCaption (the attachment stays untouched).
+    On an HTML parse error we retry the same edit as plain text so the content
+    still lands; "message is not modified" is treated as success. Any other
+    failure propagates so the caller can log it and notify the owner — the
+    original post is left intact.
+    """
+    new_text = strip_reasoning(new_text)
+    chat_id, msg_id = message.chat_id, message.message_id
+
+    if _is_media(message):
+        async def edit(parse_mode):
+            await bot.edit_message_caption(
+                chat_id=chat_id, message_id=msg_id,
+                caption=new_text, parse_mode=parse_mode,
+            )
+    else:
+        async def edit(parse_mode):
             await bot.edit_message_text(
-                chat_id=chat_id,
-                message_id=msg_id,
-                text=new_text,
-                parse_mode=ParseMode.HTML,
+                chat_id=chat_id, message_id=msg_id,
+                text=new_text, parse_mode=parse_mode,
             )
+
+    try:
+        await edit(ParseMode.HTML)
+    except BadRequest as e:
+        err = str(e).lower()
+        if "not modified" in err:
             return
-        except Exception as e:
-            logger.warning(f"Edit failed ({e}), falling back to delete+send")
-
-    # Delete original
-    try:
-        await bot.delete_message(chat_id=chat_id, message_id=msg_id)
-    except Exception as e:
-        logger.warning(f"Could not delete message {msg_id}: {e}")
-
-    # Resend with media if present
-    try:
-        if message.photo:
-            await bot.send_photo(
-                chat_id=chat_id,
-                photo=message.photo[-1].file_id,
-                caption=new_text,
-                parse_mode=ParseMode.HTML,
-            )
-        elif message.video:
-            await bot.send_video(
-                chat_id=chat_id,
-                video=message.video.file_id,
-                caption=new_text,
-                parse_mode=ParseMode.HTML,
-            )
-        elif message.document:
-            await bot.send_document(
-                chat_id=chat_id,
-                document=message.document.file_id,
-                caption=new_text,
-                parse_mode=ParseMode.HTML,
-            )
-        elif message.animation:
-            await bot.send_animation(
-                chat_id=chat_id,
-                animation=message.animation.file_id,
-                caption=new_text,
-                parse_mode=ParseMode.HTML,
-            )
-        else:
-            await bot.send_message(
-                chat_id=chat_id,
-                text=new_text,
-                parse_mode=ParseMode.HTML,
-            )
-    except Exception as e:
-        logger.error(f"Failed to send replacement message: {e}")
+        if "parse" in err or "entit" in err or "tag" in err:
+            logger.warning("HTML parse failed (%s); retrying edit as plain text", e)
+            await edit(None)
+            return
+        raise
