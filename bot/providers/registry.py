@@ -3,6 +3,7 @@ from .openrouter import OpenRouterProvider
 from .freemodel import FreeModelProvider
 from .openmodel import OpenModelProvider
 from .nvidia import NvidiaProvider
+from .deepseek import DeepSeekProvider
 from .base import BaseProvider
 
 PROVIDERS: dict[str, BaseProvider] = {
@@ -11,6 +12,7 @@ PROVIDERS: dict[str, BaseProvider] = {
     "freemodel": FreeModelProvider(),
     "openmodel": OpenModelProvider(),
     "nvidia": NvidiaProvider(),
+    "deepseek": DeepSeekProvider(),
 }
 
 

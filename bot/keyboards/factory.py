@@ -23,6 +23,7 @@ PROVIDER_LABELS = {
     "freemodel": "🆓 FreeModel",
     "openmodel": "🌐 OpenModel",
     "nvidia": "💚 NVIDIA",
+    "deepseek": "🐳 DeepSeek",
 }
 
 

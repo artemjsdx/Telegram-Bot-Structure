@@ -18,7 +18,7 @@ CB_AGENT = "agent"      # agent:list|new|view|edit|setprov|chans|addchan|delchan
 CB_NOOP = "noop"        # inert button (e.g. pagination label)
 
 # --- Provider order (display) ----------------------------------------------
-PROVIDER_ORDER = ["favoriteapi", "openrouter", "freemodel", "openmodel", "nvidia"]
+PROVIDER_ORDER = ["favoriteapi", "openrouter", "freemodel", "openmodel", "nvidia", "deepseek"]
 
 # --- Settings (KV) keys ----------------------------------------------------
 SET_BANNER_TYPE = "menu_banner_type"       # photo | video | none
