@@ -163,17 +163,41 @@ def _status_str(lang: str, s: dict) -> str:
     return t(lang, "admin_user_status_ok")
 
 
-async def _channels_block(lang: str, tuid: int) -> str:
+async def _resolve_channel_link(bot, channel_id: int, fallback_title: str) -> tuple[str, str | None]:
+    """
+    Best-effort (real title, url) for a channel via get_chat: a public @username
+    becomes a t.me link, a private channel uses its primary invite link if the
+    bot (as admin) has one. Falls back to the stored title with no link.
+    """
+    title = (fallback_title or "").strip()
+    link = None
+    try:
+        chat = await bot.get_chat(channel_id)
+        title = (chat.title or title or "").strip()
+        if chat.username:
+            link = f"https://t.me/{chat.username}"
+        elif getattr(chat, "invite_link", None):
+            link = chat.invite_link
+    except Exception:  # noqa: BLE001 — channel may be gone or the bot kicked
+        pass
+    return (title or f"id {channel_id}"), link
+
+
+async def _channels_block(bot, lang: str, tuid: int) -> str:
     """HTML block listing the user's active bound channels (capped for caption limit)."""
     chans = [c for c in await get_channels_for_user(tuid) if c.get("active")]
     if not chans:
         return t(lang, "admin_user_channels_none")
     shown, lines = chans[:10], []
     for c in shown:
-        title = (c.get("chan_title") or "").strip() or f"id {c['channel_id']}"
+        title, link = await _resolve_channel_link(bot, c["channel_id"], c.get("chan_title"))
         if len(title) > 32:
             title = title[:31] + "…"
-        lines.append(f"• {html.escape(title)}")
+        title_esc = html.escape(title)
+        if link:
+            lines.append(f'• <a href="{html.escape(link, quote=True)}">{title_esc}</a>')
+        else:
+            lines.append(f"• {title_esc}")
     body = "\n".join(lines)
     if len(chans) > len(shown):
         body += t(lang, "admin_user_channels_more", n=len(chans) - len(shown))
@@ -196,7 +220,7 @@ async def _render_user_card(update, context, lang: str, tuid: int, win: int) -> 
         provider=html.escape(str(s["provider"])), ulang=s["lang"],
         created=_fmt_ts(s["created_at"]), last=_fmt_ts(s["last_ts"]),
     )
-    caption += await _channels_block(lang, tuid)
+    caption += await _channels_block(context.bot, lang, tuid)
     if len(caption) > 1024:
         caption = caption[:1021] + "…"
     png = None
