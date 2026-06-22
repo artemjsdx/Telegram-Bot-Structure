@@ -32,6 +32,7 @@ CREATE TABLE IF NOT EXISTS users (
     last_seen         INTEGER DEFAULT 0,
     blocked           INTEGER DEFAULT 0,
     blocked_at        INTEGER DEFAULT 0,
+    block_kind        TEXT    DEFAULT '',
     accept_presets    INTEGER DEFAULT 1
 )
 """

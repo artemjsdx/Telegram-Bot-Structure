@@ -402,13 +402,26 @@ def admin_menu_kb(lang: str = "ru") -> InlineKeyboardMarkup:
 
 
 def _user_label(u: dict) -> str:
-    """Button label for a user: @username → first_name → id, with a status flag."""
+    """
+    Button label for a user: @username → first_name → id.
+    Prefix = reachability flag; suffix = bound-channels marker
+    (📎 exactly one, 🖇️ more than one).
+    """
     uname = u.get("username")
     label = ("@" + uname) if uname else (u.get("first_name") or str(u["user_id"]))
-    if len(label) > 28:
-        label = label[:27] + "…"
-    flag = "🚫 " if u.get("is_banned") else ("⛔ " if u.get("blocked") else "")
-    return f"{flag}{label}"
+    if len(label) > 24:
+        label = label[:23] + "…"
+    if u.get("is_banned"):
+        flag = "🚫 "
+    elif u.get("blocked"):
+        flag = "👻 " if u.get("block_kind") == "deleted" else "⛔ "
+    else:
+        flag = ""
+    n = u.get("chan_count")
+    if n is None:
+        n = len(u.get("channel_ids") or [])
+    clip = " 🖇️" if n > 1 else (" 📎" if n == 1 else "")
+    return f"{flag}{label}{clip}"
 
 
 def admin_users_kb(

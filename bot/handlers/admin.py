@@ -37,6 +37,7 @@ from db.storage import (
     recent_logs, get_setting, set_setting, delete_setting,
     set_blocked, get_user_detail_stats, posts_per_day, users_flow_per_day,
     search_users, count_search,
+    active_channel_counts, channel_titles_for, get_channels_for_user,
 )
 from handlers.menu import nav, nav_media, is_admin
 from keyboards.factory import (
@@ -125,13 +126,22 @@ async def show_admin(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None
     await _render(update, context, t(lang, "admin_title"), admin_menu_kb(lang), edit=False)
 
 
+async def _with_chan_counts(users: list[dict]) -> list[dict]:
+    """Attach the active bound-channel count to each user dict (for 📎/🖇️ markers)."""
+    counts = await active_channel_counts([u["user_id"] for u in users])
+    for u in users:
+        u["chan_count"] = counts.get(u["user_id"], 0)
+    return users
+
+
 async def on_users(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     user, lang = await _guard(update)
     if user is None:
         return
     page = int(update.callback_query.data.split(":")[2])
     total = await count_users()
-    users = await list_users(limit=PAGE_SIZE_USERS, offset=page * PAGE_SIZE_USERS)
+    users = await _with_chan_counts(
+        await list_users(limit=PAGE_SIZE_USERS, offset=page * PAGE_SIZE_USERS))
     text = t(lang, "admin_users_title", count=total)
     await _render(update, context, text, admin_users_kb(users, page, total, lang))
 
@@ -147,8 +157,27 @@ def _status_str(lang: str, s: dict) -> str:
     if s.get("is_banned"):
         return t(lang, "admin_user_status_banned")
     if s.get("blocked"):
+        if s.get("block_kind") == "deleted":
+            return t(lang, "admin_user_status_deleted")
         return t(lang, "admin_user_status_blocked")
     return t(lang, "admin_user_status_ok")
+
+
+async def _channels_block(lang: str, tuid: int) -> str:
+    """HTML block listing the user's active bound channels (capped for caption limit)."""
+    chans = [c for c in await get_channels_for_user(tuid) if c.get("active")]
+    if not chans:
+        return t(lang, "admin_user_channels_none")
+    shown, lines = chans[:10], []
+    for c in shown:
+        title = (c.get("chan_title") or "").strip() or f"id {c['channel_id']}"
+        if len(title) > 32:
+            title = title[:31] + "…"
+        lines.append(f"• {html.escape(title)}")
+    body = "\n".join(lines)
+    if len(chans) > len(shown):
+        body += t(lang, "admin_user_channels_more", n=len(chans) - len(shown))
+    return t(lang, "admin_user_channels", list=body)
 
 
 async def _render_user_card(update, context, lang: str, tuid: int, win: int) -> None:
@@ -167,6 +196,9 @@ async def _render_user_card(update, context, lang: str, tuid: int, win: int) -> 
         provider=html.escape(str(s["provider"])), ulang=s["lang"],
         created=_fmt_ts(s["created_at"]), last=_fmt_ts(s["last_ts"]),
     )
+    caption += await _channels_block(lang, tuid)
+    if len(caption) > 1024:
+        caption = caption[:1021] + "…"
     png = None
     try:
         png = render_daily_chart(
@@ -216,10 +248,11 @@ async def on_stats(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         return
     win = _win_from(update.callback_query.data, 2)
     g = await global_stats()
-    active = max(0, g["users"] - g["blocked"] - g["banned"])
+    active = max(0, g["users"] - g["blocked"] - g["deleted"] - g["banned"])
     caption = t(
         lang, "admin_gstats",
-        users=g["users"], active=active, blocked=g["blocked"], banned=g["banned"],
+        users=g["users"], active=active, blocked=g["blocked"],
+        deleted=g["deleted"], banned=g["banned"],
         processed=g["processed"], failed=g["failed"],
     )
     png = None
@@ -243,6 +276,7 @@ async def on_logs(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     if not logs:
         body = t(lang, "admin_logs_empty")
     else:
+        titles = await channel_titles_for([e.get("channel_id") for e in logs])
         lines = []
         for entry in logs:
             mark = "✅" if entry.get("ok") else "❌"
@@ -250,6 +284,12 @@ async def on_logs(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
             prov = html.escape(str(entry.get("provider") or "—"))
             model = html.escape(str(entry.get("model") or "—"))
             lines.append(f"{mark} <code>{when}</code> {prov}/{model} · {entry.get('response_ms', 0)}ms")
+            cid = entry.get("channel_id")
+            if cid:
+                chan = titles.get(cid) or f"id {cid}"
+                if len(chan) > 32:
+                    chan = chan[:31] + "…"
+                lines.append(f"   📣 {html.escape(chan)}")
             if not entry.get("ok") and entry.get("error"):
                 lines.append(f"   <i>{html.escape(str(entry['error'])[:80])}</i>")
         body = "\n".join(lines)
@@ -284,7 +324,8 @@ async def got_user_search(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
             reply_markup=_back_kb("admin:users:0", lang),
         )
         return ConversationHandler.END
-    users = await search_users(query, limit=PAGE_SIZE_USERS, offset=0)
+    users = await _with_chan_counts(
+        await search_users(query, limit=PAGE_SIZE_USERS, offset=0))
     text = t(lang, "admin_user_search_title", q=html.escape(query), count=total)
     kb = admin_users_kb(users, 0, total, lang,
                         page_prefix="admin:usearch:pg", show_search=False,
@@ -300,7 +341,8 @@ async def on_user_search_page(update: Update, context: ContextTypes.DEFAULT_TYPE
     page = int(update.callback_query.data.split(":")[3])
     query = context.user_data.get("user_search", "")
     total = await count_search(query)
-    users = await search_users(query, limit=PAGE_SIZE_USERS, offset=page * PAGE_SIZE_USERS)
+    users = await _with_chan_counts(
+        await search_users(query, limit=PAGE_SIZE_USERS, offset=page * PAGE_SIZE_USERS))
     text = t(lang, "admin_user_search_title", q=html.escape(query), count=total)
     kb = admin_users_kb(users, page, total, lang,
                         page_prefix="admin:usearch:pg", show_search=False,
@@ -578,7 +620,9 @@ async def on_my_chat_member(update: Update, context: ContextTypes.DEFAULT_TYPE) 
         return
     status = cm.new_chat_member.status
     if status in ("kicked", "left"):
-        await set_blocked(cm.chat.id, True)
+        # "kicked" = the user blocked the bot; "left" we record under the same
+        # umbrella. Telegram has no event for "deleted the chat without blocking".
+        await set_blocked(cm.chat.id, True, kind="blocked")
     elif status == "member":
         await set_blocked(cm.chat.id, False)
 
@@ -642,6 +686,14 @@ async def got_broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
     return ConversationHandler.END
 
 
+def _block_kind_from_error(exc) -> str:
+    """Classify a Forbidden/send error into 'deleted' (account gone) vs 'blocked'."""
+    msg = str(getattr(exc, "message", "") or exc).lower()
+    if "deactiv" in msg or "not found" in msg or "can't initiate" in msg:
+        return "deleted"
+    return "blocked"
+
+
 async def on_broadcast_yes(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     user, lang = await _guard(update)
     if user is None:
@@ -663,9 +715,11 @@ async def on_broadcast_yes(update: Update, context: ContextTypes.DEFAULT_TYPE) -
         try:
             await context.bot.send_message(u["user_id"], text, entities=entities)
             ok += 1
-        except Forbidden:
-            # User has blocked/removed the bot — record it for the leave stats.
-            await set_blocked(u["user_id"], True)
+        except Forbidden as exc:
+            # Forbidden tells us *why* the user is unreachable: a deactivated
+            # account is the closest thing Telegram has to "deleted the bot",
+            # everything else is a plain block.
+            await set_blocked(u["user_id"], True, kind=_block_kind_from_error(exc))
         except Exception:
             pass
     await nav(update, context, t(lang, "admin_broadcast_sent", ok=ok, total=total), admin_menu_kb(lang))

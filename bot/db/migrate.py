@@ -44,6 +44,7 @@ COLUMN_MIGRATIONS: list[tuple[str, str, str]] = [
     ("users", "last_seen",        "INTEGER DEFAULT 0"),
     ("users", "blocked",          "INTEGER DEFAULT 0"),
     ("users", "blocked_at",       "INTEGER DEFAULT 0"),
+    ("users", "block_kind",       "TEXT    DEFAULT ''"),
     ("users", "accept_presets",   "INTEGER DEFAULT 1"),
     ("channels", "agent_id",      "INTEGER"),
 ]

@@ -123,20 +123,61 @@ async def touch_user(user_id: int, username: str = "", first_name: str = "") -> 
         await db.commit()
 
 
-async def set_blocked(user_id: int, flag: bool) -> None:
-    """Mark whether a user removed/blocked the bot. Stamps blocked_at when blocking."""
+async def set_blocked(user_id: int, flag: bool, kind: str = "") -> None:
+    """
+    Mark whether a user is unreachable and *how* we learned it.
+
+    `kind` records the cause, since Telegram has no single "removed the bot"
+    signal: 'blocked' (my_chat_member kicked / "bot was blocked by the user"),
+    'deleted' (account deactivated — the closest thing to "deleted the bot"),
+    'left' (status left). Empty `kind` while blocking defaults to 'blocked'.
+    """
     async with aiosqlite.connect(DB_PATH) as db:
         if flag:
             await db.execute(
-                "UPDATE users SET blocked=1, blocked_at=? WHERE user_id=?",
-                (int(time.time()), user_id),
+                "UPDATE users SET blocked=1, blocked_at=?, block_kind=? WHERE user_id=?",
+                (int(time.time()), kind or "blocked", user_id),
             )
         else:
             await db.execute(
-                "UPDATE users SET blocked=0, blocked_at=0 WHERE user_id=?",
+                "UPDATE users SET blocked=0, blocked_at=0, block_kind='' WHERE user_id=?",
                 (user_id,),
             )
         await db.commit()
+
+
+async def active_channel_counts(user_ids: list[int]) -> dict[int, int]:
+    """Map user_id → number of active bound channels, for the given users."""
+    ids = [u for u in user_ids if u is not None]
+    if not ids:
+        return {}
+    ph = ",".join("?" * len(ids))
+    async with aiosqlite.connect(DB_PATH) as db:
+        async with db.execute(
+            f"SELECT user_id, COUNT(*) FROM channels "
+            f"WHERE active=1 AND user_id IN ({ph}) GROUP BY user_id",
+            ids,
+        ) as cur:
+            return {row[0]: row[1] for row in await cur.fetchall()}
+
+
+async def channel_titles_for(channel_ids: list[int]) -> dict[int, str]:
+    """Map channel_id → a non-empty chan_title, for the given ids (deduped)."""
+    ids = [c for c in {*channel_ids} if c]
+    if not ids:
+        return {}
+    ph = ",".join("?" * len(ids))
+    async with aiosqlite.connect(DB_PATH) as db:
+        async with db.execute(
+            f"SELECT channel_id, chan_title FROM channels WHERE channel_id IN ({ph})",
+            ids,
+        ) as cur:
+            rows = await cur.fetchall()
+    out: dict[int, str] = {}
+    for cid, title in rows:
+        if title and cid not in out:
+            out[cid] = title
+    return out
 
 
 # ---------------------------------------------------------------------------
@@ -661,6 +702,7 @@ async def get_user_detail_stats(user_id: int) -> dict:
         "created_at": user.get("created_at") or 0,
         "is_banned": bool(user.get("is_banned")),
         "blocked": bool(user.get("blocked")),
+        "block_kind": user.get("block_kind") or "",
         "username": user.get("username") or "",
         "first_name": user.get("first_name") or "",
     }
@@ -890,7 +932,10 @@ async def global_stats() -> dict:
             "SELECT COUNT(*) AS users, "
             "COALESCE(SUM(posts_processed),0) AS processed, "
             "COALESCE(SUM(posts_failed),0) AS failed, "
-            "COALESCE(SUM(CASE WHEN blocked=1 THEN 1 ELSE 0 END),0) AS blocked, "
+            "COALESCE(SUM(CASE WHEN blocked=1 AND COALESCE(block_kind,'')<>'deleted' "
+            "THEN 1 ELSE 0 END),0) AS blocked, "
+            "COALESCE(SUM(CASE WHEN blocked=1 AND block_kind='deleted' "
+            "THEN 1 ELSE 0 END),0) AS deleted, "
             "COALESCE(SUM(CASE WHEN is_banned=1 THEN 1 ELSE 0 END),0) AS banned "
             "FROM users"
         ) as cur:
@@ -900,6 +945,7 @@ async def global_stats() -> dict:
                 "processed": row["processed"] or 0,
                 "failed": row["failed"] or 0,
                 "blocked": row["blocked"] or 0,
+                "deleted": row["deleted"] or 0,
                 "banned": row["banned"] or 0,
             }
 

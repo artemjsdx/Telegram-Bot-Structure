@@ -442,6 +442,7 @@ TEXTS: dict[str, dict[str, str]] = {
         "admin_user_none": "Пользователь не найден.",
         "admin_user_status_banned": "🚫 бан",
         "admin_user_status_blocked": "⛔ заблокировал бота",
+        "admin_user_status_deleted": "👻 удалил / недоступен",
         "admin_user_status_ok": "🟢 активен",
         "admin_user_card": (
             "<b>👤 {name}</b>\n"
@@ -455,10 +456,15 @@ TEXTS: dict[str, dict[str, str]] = {
             "Регистрация: {created}\n"
             "Последняя активность: {last}"
         ),
+        "admin_user_channels": "\n\n<b>📎 Привязанные каналы:</b>\n{list}",
+        "admin_user_channels_more": "\n…и ещё {n}",
+        "admin_user_channels_none": "\n\n<i>📎 Нет привязанных каналов</i>",
         "admin_gstats": (
             "<b>📊 Глобальная статистика</b>\n\n"
             "Пользователей: <b>{users}</b>\n"
-            "Активных: <b>{active}</b> · Ушедших: <b>{blocked}</b> · Бан: <b>{banned}</b>\n"
+            "Активных: <b>{active}</b>\n"
+            "⛔ Заблокировали: <b>{blocked}</b> · 👻 Удалили: <b>{deleted}</b>\n"
+            "🚫 Бан: <b>{banned}</b>\n"
             "Обработано постов: <b>{processed}</b>\n"
             "Ошибок: <b>{failed}</b>"
         ),
@@ -970,6 +976,7 @@ TEXTS: dict[str, dict[str, str]] = {
         "admin_user_none": "User not found.",
         "admin_user_status_banned": "🚫 banned",
         "admin_user_status_blocked": "⛔ blocked the bot",
+        "admin_user_status_deleted": "👻 removed / unreachable",
         "admin_user_status_ok": "🟢 active",
         "admin_user_card": (
             "<b>👤 {name}</b>\n"
@@ -983,10 +990,15 @@ TEXTS: dict[str, dict[str, str]] = {
             "Registered: {created}\n"
             "Last activity: {last}"
         ),
+        "admin_user_channels": "\n\n<b>📎 Bound channels:</b>\n{list}",
+        "admin_user_channels_more": "\n…and {n} more",
+        "admin_user_channels_none": "\n\n<i>📎 No bound channels</i>",
         "admin_gstats": (
             "<b>📊 Global statistics</b>\n\n"
             "Users: <b>{users}</b>\n"
-            "Active: <b>{active}</b> · Left: <b>{blocked}</b> · Banned: <b>{banned}</b>\n"
+            "Active: <b>{active}</b>\n"
+            "⛔ Blocked: <b>{blocked}</b> · 👻 Removed: <b>{deleted}</b>\n"
+            "🚫 Banned: <b>{banned}</b>\n"
             "Posts processed: <b>{processed}</b>\n"
             "Errors: <b>{failed}</b>"
         ),
