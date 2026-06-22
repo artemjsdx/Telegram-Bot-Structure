@@ -34,7 +34,7 @@ FALLBACK_MODELS = [
 
 class NvidiaProvider(BaseProvider):
     name = "nvidia"
-    display_name = "💚 NVIDIA"
+    display_name = "NVIDIA 💚"
 
     def requires_api_base(self) -> bool:
         return False
@@ -102,11 +102,11 @@ class NvidiaProvider(BaseProvider):
                     msg = err
                 else:
                     msg = (data.get("message") if isinstance(data, dict) else None) or f"HTTP {r.status_code}"
-                raise RuntimeError(f"💚 NVIDIA: {msg}")
+                raise RuntimeError(f"NVIDIA 💚: {msg}")
 
             choices = (data or {}).get("choices", [])
             if choices:
                 content = choices[0].get("message", {}).get("content")
                 if content:
                     return content
-            raise ValueError(f"💚 NVIDIA: пустой ответ ({data})")
+            raise ValueError(f"NVIDIA 💚: пустой ответ ({data})")

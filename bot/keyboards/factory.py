@@ -18,12 +18,12 @@ from constants import (
 from texts import t
 
 PROVIDER_LABELS = {
-    "favoriteapi": "⭐ FavoriteAPI",
-    "openrouter": "🔀 OpenRouter",
-    "freemodel": "🆓 FreeModel",
-    "openmodel": "🌐 OpenModel",
-    "nvidia": "💚 NVIDIA",
-    "deepseek": "🐳 DeepSeek",
+    "favoriteapi": "FavoriteAPI ⭐",
+    "openrouter": "OpenRouter 🔀",
+    "freemodel": "FreeModel 🆓",
+    "openmodel": "OpenModel 🌐",
+    "nvidia": "NVIDIA 💚",
+    "deepseek": "DeepSeek 🐋",
 }
 
 

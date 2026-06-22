@@ -17,7 +17,7 @@ _SKIP_NGROK = {"ngrok-skip-browser-warning": "true"}
 
 class FavoriteAPIProvider(BaseProvider):
     name = "favoriteapi"
-    display_name = "⭐ FavoriteAPI"
+    display_name = "FavoriteAPI ⭐"
 
     def requires_api_base(self) -> bool:
         return True

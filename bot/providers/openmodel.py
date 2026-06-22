@@ -32,7 +32,7 @@ FALLBACK_MODELS = [
 
 class OpenModelProvider(BaseProvider):
     name = "openmodel"
-    display_name = "🌐 OpenModel"
+    display_name = "OpenModel 🌐"
 
     def requires_api_base(self) -> bool:
         return False
@@ -132,7 +132,7 @@ class OpenModelProvider(BaseProvider):
         r = await client.post(f"{base}/messages", json=payload, headers=self._headers(api_key))
         data = self._json(r)
         if r.status_code >= 400 or (isinstance(data, dict) and data.get("error")):
-            raise RuntimeError(f"🌐 OpenModel: {self._err_message(data, r.status_code)}")
+            raise RuntimeError(f"OpenModel 🌐: {self._err_message(data, r.status_code)}")
         blocks = (data or {}).get("content", [])
         if isinstance(blocks, list):
             text = "".join(
@@ -142,7 +142,7 @@ class OpenModelProvider(BaseProvider):
             )
             if text:
                 return text
-        raise ValueError(f"🌐 OpenModel: пустой ответ ({data})")
+        raise ValueError(f"OpenModel 🌐: пустой ответ ({data})")
 
     # ── OpenAI Responses (gpt-*) ──
     async def _chat_responses(self, client, base, api_key, model, messages) -> str:
@@ -153,7 +153,7 @@ class OpenModelProvider(BaseProvider):
         r = await client.post(f"{base}/responses", json=payload, headers=self._headers(api_key))
         data = self._json(r)
         if r.status_code >= 400 or (isinstance(data, dict) and data.get("error")):
-            raise RuntimeError(f"🌐 OpenModel: {self._err_message(data, r.status_code)}")
+            raise RuntimeError(f"OpenModel 🌐: {self._err_message(data, r.status_code)}")
         # Convenience field on some responses, else dig into the output items.
         text = data.get("output_text") if isinstance(data, dict) else None
         if not text:
@@ -166,7 +166,7 @@ class OpenModelProvider(BaseProvider):
             text = "".join(parts)
         if text:
             return text
-        raise ValueError(f"🌐 OpenModel: пустой ответ ({data})")
+        raise ValueError(f"OpenModel 🌐: пустой ответ ({data})")
 
     # ── Gemini (gemini-*) ──
     async def _chat_gemini(self, client, base, api_key, model, messages) -> str:
@@ -186,7 +186,7 @@ class OpenModelProvider(BaseProvider):
         r = await client.post(url, json=payload, headers={"Content-Type": "application/json"})
         data = self._json(r)
         if r.status_code >= 400 or (isinstance(data, dict) and data.get("error")):
-            raise RuntimeError(f"🌐 OpenModel: {self._err_message(data, r.status_code)}")
+            raise RuntimeError(f"OpenModel 🌐: {self._err_message(data, r.status_code)}")
         cands = (data or {}).get("candidates", [])
         if cands:
             parts = cands[0].get("content", {}).get("parts", [])
@@ -197,7 +197,7 @@ class OpenModelProvider(BaseProvider):
             )
             if text:
                 return text
-        raise ValueError(f"🌐 OpenModel: пустой ответ ({data})")
+        raise ValueError(f"OpenModel 🌐: пустой ответ ({data})")
 
     @staticmethod
     def _json(r):

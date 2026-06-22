@@ -24,7 +24,7 @@ FALLBACK_MODELS = [
 
 class FreeModelProvider(BaseProvider):
     name = "freemodel"
-    display_name = "🆓 FreeModel"
+    display_name = "FreeModel 🆓"
 
     def requires_api_base(self) -> bool:
         return False
@@ -90,11 +90,11 @@ class FreeModelProvider(BaseProvider):
                     msg = err
                 else:
                     msg = (data.get("message") if isinstance(data, dict) else None) or f"HTTP {r.status_code}"
-                raise RuntimeError(f"🆓 FreeModel: {msg}")
+                raise RuntimeError(f"FreeModel 🆓: {msg}")
 
             choices = (data or {}).get("choices", [])
             if choices:
                 content = choices[0].get("message", {}).get("content")
                 if content:
                     return content
-            raise ValueError(f"🆓 FreeModel: пустой ответ ({data})")
+            raise ValueError(f"FreeModel 🆓: пустой ответ ({data})")

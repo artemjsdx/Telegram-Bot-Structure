@@ -37,7 +37,7 @@ _POPULAR_MODELS = [
 
 class OpenRouterProvider(BaseProvider):
     name = "openrouter"
-    display_name = "🔀 OpenRouter"
+    display_name = "OpenRouter 🔀"
 
     def requires_api_base(self) -> bool:
         return False
