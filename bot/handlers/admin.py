@@ -163,44 +163,61 @@ def _status_str(lang: str, s: dict) -> str:
     return t(lang, "admin_user_status_ok")
 
 
-async def _resolve_channel_link(bot, channel_id: int, fallback_title: str) -> tuple[str, str | None]:
+async def _resolve_channel(bot, channel_id: int, fallback_title: str) -> tuple[str, str | None, str | None]:
     """
-    Best-effort (real title, url) for a channel via get_chat: a public @username
-    becomes a t.me link, a private channel uses its primary invite link if the
-    bot (as admin) has one. Falls back to the stored title with no link.
+    Best-effort (title, username, invite_link) for a channel via get_chat.
+    A public channel exposes `username`; a private one may expose a primary
+    `invite_link` if the bot is its admin. Either may be None; the title falls
+    back to the stored one (which can be an emoji or empty).
     """
     title = (fallback_title or "").strip()
-    link = None
+    username = invite = None
     try:
         chat = await bot.get_chat(channel_id)
         title = (chat.title or title or "").strip()
-        if chat.username:
-            link = f"https://t.me/{chat.username}"
-        elif getattr(chat, "invite_link", None):
-            link = chat.invite_link
+        username = chat.username
+        if not username:
+            invite = getattr(chat, "invite_link", None)
     except Exception:  # noqa: BLE001 — channel may be gone or the bot kicked
         pass
-    return (title or f"id {channel_id}"), link
+    return title, username, invite
 
 
-async def _channels_block(bot, lang: str, tuid: int) -> str:
-    """HTML block listing the user's active bound channels (capped for caption limit)."""
+async def _channels_block(bot, lang: str, tuid: int, budget: int) -> str:
+    """
+    HTML list of the user's active bound channels. Each line shows, separately,
+    the name (if any), the link/@username (if any) and — always — the channel id
+    (monospace, copyable). Lines are dropped whole to stay within `budget` chars,
+    so the HTML caption is never sliced mid-tag.
+    """
     chans = [c for c in await get_channels_for_user(tuid) if c.get("active")]
     if not chans:
         return t(lang, "admin_user_channels_none")
-    shown, lines = chans[:10], []
-    for c in shown:
-        title, link = await _resolve_channel_link(bot, c["channel_id"], c.get("chan_title"))
-        if len(title) > 32:
-            title = title[:31] + "…"
-        title_esc = html.escape(title)
-        if link:
-            lines.append(f'• <a href="{html.escape(link, quote=True)}">{title_esc}</a>')
-        else:
-            lines.append(f"• {title_esc}")
+    lines, used, shown = [], 0, 0
+    for c in chans:
+        if shown >= 10:
+            break
+        cid = c["channel_id"]
+        title, username, invite = await _resolve_channel(bot, cid, c.get("chan_title"))
+        parts = []
+        if title:
+            if len(title) > 28:
+                title = title[:27] + "…"
+            parts.append(html.escape(title))
+        if username:
+            parts.append(f'<a href="https://t.me/{username}">@{username}</a>')
+        elif invite:
+            parts.append(f'<a href="{html.escape(invite, quote=True)}">{t(lang, "admin_user_channels_link")}</a>')
+        parts.append(f"<code>{cid}</code>")
+        line = "• " + " · ".join(parts)
+        if lines and used + len(line) + 1 > budget:
+            break
+        lines.append(line)
+        used += len(line) + 1
+        shown += 1
     body = "\n".join(lines)
-    if len(chans) > len(shown):
-        body += t(lang, "admin_user_channels_more", n=len(chans) - len(shown))
+    if shown < len(chans):
+        body += t(lang, "admin_user_channels_more", n=len(chans) - shown)
     return t(lang, "admin_user_channels", list=body)
 
 
@@ -220,9 +237,9 @@ async def _render_user_card(update, context, lang: str, tuid: int, win: int) -> 
         provider=html.escape(str(s["provider"])), ulang=s["lang"],
         created=_fmt_ts(s["created_at"]), last=_fmt_ts(s["last_ts"]),
     )
-    caption += await _channels_block(context.bot, lang, tuid)
-    if len(caption) > 1024:
-        caption = caption[:1021] + "…"
+    # Budget the channels block by remaining caption room (Telegram cap is 1024);
+    # reserve a margin for the block's header/“…more” wrapper text.
+    caption += await _channels_block(context.bot, lang, tuid, budget=max(0, 1024 - len(caption) - 60))
     png = None
     try:
         png = render_daily_chart(

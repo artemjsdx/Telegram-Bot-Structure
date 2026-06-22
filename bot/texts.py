@@ -459,6 +459,7 @@ TEXTS: dict[str, dict[str, str]] = {
         "admin_user_channels": "\n\n<b>📎 Привязанные каналы:</b>\n{list}",
         "admin_user_channels_more": "\n…и ещё {n}",
         "admin_user_channels_none": "\n\n<i>📎 Нет привязанных каналов</i>",
+        "admin_user_channels_link": "🔗 ссылка",
         "admin_gstats": (
             "<b>📊 Глобальная статистика</b>\n\n"
             "Пользователей: <b>{users}</b>\n"
@@ -993,6 +994,7 @@ TEXTS: dict[str, dict[str, str]] = {
         "admin_user_channels": "\n\n<b>📎 Bound channels:</b>\n{list}",
         "admin_user_channels_more": "\n…and {n} more",
         "admin_user_channels_none": "\n\n<i>📎 No bound channels</i>",
+        "admin_user_channels_link": "🔗 link",
         "admin_gstats": (
             "<b>📊 Global statistics</b>\n\n"
             "Users: <b>{users}</b>\n"
