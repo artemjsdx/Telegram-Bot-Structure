@@ -21,7 +21,7 @@ FALLBACK_MODELS = [
 
 class DeepSeekProvider(BaseProvider):
     name = "deepseek"
-    display_name = "DeepSeek 🐋"
+    display_name = "DeepSeek 🐳"
 
     def requires_api_base(self) -> bool:
         return False
@@ -85,11 +85,11 @@ class DeepSeekProvider(BaseProvider):
                     msg = err
                 else:
                     msg = (data.get("message") if isinstance(data, dict) else None) or f"HTTP {r.status_code}"
-                raise RuntimeError(f"DeepSeek 🐋: {msg}")
+                raise RuntimeError(f"DeepSeek 🐳: {msg}")
 
             choices = (data or {}).get("choices", [])
             if choices:
                 content = choices[0].get("message", {}).get("content")
                 if content:
                     return content
-            raise ValueError(f"DeepSeek 🐋: пустой ответ ({data})")
+            raise ValueError(f"DeepSeek 🐳: пустой ответ ({data})")
