@@ -17,7 +17,7 @@ from telegram.ext import ContextTypes, ConversationHandler
 
 from constants import T_PREVIEW_EDIT
 from core.replacer import replace_post
-from core.sanitize import strip_reasoning
+from core.sanitize import sanitize_html
 from keyboards.factory import preview_kb, preview_edit_kb
 from texts import t
 
@@ -48,7 +48,7 @@ async def send_preview(
 ) -> None:
     """DM the proposed rewrite to the channel owner for confirmation."""
     lang = user.get("lang") or "ru"
-    ai_text = strip_reasoning(ai_text)
+    ai_text = sanitize_html(ai_text)
     channel_id, msg_id = message.chat_id, message.message_id
     _store(context)[_key(channel_id, msg_id)] = {
         "message": message,

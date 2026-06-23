@@ -4,7 +4,7 @@ from telegram import Bot, Message
 from telegram.constants import ParseMode
 from telegram.error import BadRequest
 
-from core.sanitize import strip_reasoning
+from core.sanitize import sanitize_html
 
 logger = logging.getLogger(__name__)
 
@@ -27,7 +27,7 @@ async def replace_post(bot: Bot, message: Message, new_text: str) -> None:
     failure propagates so the caller can log it and notify the owner — the
     original post is left intact.
     """
-    new_text = strip_reasoning(new_text)
+    new_text = sanitize_html(new_text)
     chat_id, msg_id = message.chat_id, message.message_id
 
     if _is_media(message):
