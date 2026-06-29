@@ -350,13 +350,10 @@ TEXTS: dict[str, dict[str, str]] = {
             "<b>🤖 {name}</b>\n\n"
             "Провайдер: <b>{provider}</b>\n"
             "Модель: <code>{model}</code>\n"
-            "Промпт: <blockquote>{prompt}</blockquote>\n"
             "Режим: {mode}\n"
             "Форварды: {forwarded}\n"
             "Каналы: {channels}\n\n"
-            "<blockquote>✏️ <b>Правка</b> — бот редактирует пост на месте. "
-            "🔁 <b>Переотправка</b> — удаляет оригинал и шлёт новый, сохраняя медиа "
-            "(фото/видео/файлы). Форварды редактировать нельзя — для них всегда переотправка.</blockquote>"
+            "Промпт:\n<blockquote>{prompt}</blockquote>"
         ),
         "agent_mode_edit": "✏️ Режим: правка",
         "agent_mode_resend": "🔁 Режим: переотправка",
@@ -946,13 +943,10 @@ TEXTS: dict[str, dict[str, str]] = {
             "<b>🤖 {name}</b>\n\n"
             "Provider: <b>{provider}</b>\n"
             "Model: <code>{model}</code>\n"
-            "Prompt: <blockquote>{prompt}</blockquote>\n"
             "Mode: {mode}\n"
             "Forwards: {forwarded}\n"
             "Channels: {channels}\n\n"
-            "<blockquote>✏️ <b>Edit</b> — the bot edits the post in place. "
-            "🔁 <b>Resend</b> — deletes the original and sends a new one, keeping media "
-            "(photos/videos/files). Forwards can't be edited — they always use resend.</blockquote>"
+            "Prompt:\n<blockquote>{prompt}</blockquote>"
         ),
         "agent_mode_edit": "✏️ Mode: edit",
         "agent_mode_resend": "🔁 Mode: resend",

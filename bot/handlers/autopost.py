@@ -105,6 +105,22 @@ _T = {
         ),
         "ap_empty": "— пусто —",
         "ap_add": "➕ Добавить",
+        "ap_add_ask_src": (
+            "📥 <b>Добавить источник</b>\n\n"
+            "Пришлите канал/чат одним из способов:\n"
+            "• перешлите сюда любое сообщение из него;\n"
+            "• или пришлите <code>@username</code>, ссылку <code>t.me/...</code> или числовой id.\n\n"
+            "<blockquote>Аккаунт автоматически подпишется на источник, чтобы читать новые "
+            "сообщения.</blockquote>"
+        ),
+        "ap_add_ask_tgt": (
+            "📤 <b>Добавить цель</b>\n\n"
+            "Пришлите канал/чат, КУДА публиковать:\n"
+            "• перешлите сюда любое сообщение из него;\n"
+            "• или пришлите <code>@username</code>, ссылку <code>t.me/...</code> или числовой id.\n\n"
+            "<blockquote>Привязанный аккаунт должен быть участником цели, а для каналов — "
+            "с правом публикации (админом).</blockquote>"
+        ),
         "ap_need_account_first": "⚠️ Сначала привяжите аккаунт.",
         "ap_resolve_fail": "❌ Не удалось распознать/получить доступ. Проверьте ссылку и что аккаунт имеет доступ.",
         "ap_added": "✅ Добавлено: {title}",
@@ -498,17 +514,21 @@ async def del_target(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None
 
 
 async def _add_start(update, context, aid: int, kind: str, state: int) -> int:
+    q = update.callback_query
     user = await get_user(update.effective_user.id)
     lang = _lang(user)
     cfg = await get_config_for_agent(aid)
+    # Must answer exactly once: a show_alert here is ignored if we already
+    # answered earlier, so the "link an account first" notice never appeared.
     if not (cfg and cfg.get("account_id")):
-        await update.callback_query.answer(T(lang, "ap_need_account_first"), show_alert=True)
+        await q.answer(T(lang, "ap_need_account_first"), show_alert=True)
         return ConversationHandler.END
+    await q.answer()
     context.user_data["ap_aid"] = aid
     context.user_data["ap_lang"] = lang
     context.user_data["ap_kind"] = kind
-    await update.callback_query.edit_message_text(
-        T(lang, "ap_src_title" if kind == "src" else "ap_tgt_title", list=T(lang, "ap_empty")),
+    await q.edit_message_text(
+        T(lang, "ap_add_ask_src" if kind == "src" else "ap_add_ask_tgt"),
         parse_mode=ParseMode.HTML,
         reply_markup=InlineKeyboardMarkup([[back_btn(
             f"ap:{'srcs' if kind == 'src' else 'tgts'}:{aid}", lang)]]))
@@ -516,12 +536,10 @@ async def _add_start(update, context, aid: int, kind: str, state: int) -> int:
 
 
 async def add_source_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    await update.callback_query.answer()
     return await _add_start(update, context, int(update.callback_query.data.split(":")[2]), "src", AP_ADD_SOURCE)
 
 
 async def add_target_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    await update.callback_query.answer()
     return await _add_start(update, context, int(update.callback_query.data.split(":")[2]), "tgt", AP_ADD_TARGET)
 
 
