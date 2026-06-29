@@ -81,3 +81,16 @@ PAGE_SIZE_LOGS = 15
     T_USER_SEARCH,
     T_WEB_KEY,
 ) = range(100, 115)
+
+# Autoposting flows (autopost.py)
+(
+    AP_API_ID,
+    AP_API_HASH,
+    AP_PHONE,
+    AP_CODE,
+    AP_2FA,
+    AP_ADD_SOURCE,
+    AP_ADD_TARGET,
+    AP_PROMPT,
+    AP_PRESET_NEW,
+) = range(200, 209)

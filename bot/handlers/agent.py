@@ -807,6 +807,15 @@ async def on_delete_yes(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     q = update.callback_query
     await q.answer()
     aid = int(q.data.split(":")[2])
+    # Tear down any autoposting attached to this agent (config, sources/targets,
+    # and the linked userbot account) before removing the agent itself.
+    from db.storage import get_config_by_agent, delete_config_for_agent, delete_account
+    from core import tg_client
+    cfg = await get_config_by_agent(aid)
+    if cfg and cfg.get("account_id"):
+        await tg_client.drop_client(cfg["account_id"])
+        await delete_account(cfg["account_id"])
+    await delete_config_for_agent(aid)
     await delete_agent(aid)
     await show_agents(update, context)
 

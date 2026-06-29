@@ -42,6 +42,7 @@ from handlers.settings import get_settings_handlers
 from handlers.stats import get_stats_handlers
 from handlers.admin import get_admin_handlers
 from handlers.preset_share import get_preset_share_handlers
+from handlers.autopost import get_autopost_handlers
 from texts import t
 
 log = logging.getLogger(__name__)
@@ -194,6 +195,8 @@ def build() -> Application:
     for h in get_admin_handlers():
         app.add_handler(h, group=0)
     for h in get_preset_share_handlers():
+        app.add_handler(h, group=0)
+    for h in get_autopost_handlers():
         app.add_handler(h, group=0)
     for h in _preview_handlers():
         app.add_handler(h, group=0)
