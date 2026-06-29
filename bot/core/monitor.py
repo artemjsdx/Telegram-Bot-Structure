@@ -22,6 +22,7 @@ from telegram import Message, Update
 from telegram.ext import ContextTypes
 
 from core.ai_client import resolve_creds_from_agent
+from core.clock import current_time_line
 from core.formatter import get_system_prompt
 from core.limits import (
     CAPTION_LIMIT, TEXT_LIMIT, generate_within, hard_truncate, visible_len,
@@ -122,8 +123,12 @@ async def _process_post(context: ContextTypes.DEFAULT_TYPE, msgs: list[Message])
     has_media = any(_has_media(m) for m in msgs)
     limit = CAPTION_LIMIT if has_media else TEXT_LIMIT
 
+    lang = user.get("lang") or DEFAULT_LANG
     prompt = agent.get("user_prompt") or ""
     content_parts = []
+    # Always-on: give the model the current Moscow date/time so it can judge how
+    # fresh the post is. This is NOT gated by the system-prompt toggle.
+    content_parts.append(f"[CONTEXT]\n{current_time_line(lang)}\n[/CONTEXT]\n")
     if bool(agent.get("sys_prompt", 1)):
         sys_text = get_system_prompt()
         if sys_text:
