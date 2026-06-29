@@ -21,6 +21,26 @@ on your own unless the user's instruction explicitly asks for it.
 <tg-spoiler>text</tg-spoiler>             — spoiler
 <a href="URL">text</a>                    — hyperlink
 
+=== HYPERLINKS & COMBINING FORMATTING ===
+
+You can place a hyperlink on any span of text — a single letter, a word, a phrase,
+or a whole sentence — by wrapping exactly that span in <a href="URL">…</a>. The
+rest of the line stays unlinked. Examples:
+  • one word:     Read the <a href="https://x.com">guide</a> before you start.
+  • one letter:   Click <a href="https://x.com">here</a>.
+  • a sentence:   <a href="https://x.com">Full terms and conditions apply.</a>
+
+Links combine freely with font styles — nest the tags (always close in reverse
+order):
+  • bold link:           <a href="URL"><b>text</b></a>
+  • italic + underline:  <a href="URL"><i><u>text</u></i></a>
+  • bold inside, link outside, on part of a sentence:
+        Limit is <a href="URL"><b>50 requests</b></a> per day.
+
+Use links ONLY where the user's instruction asks for them, or to keep links that
+were already present in the original post. Never invent a destination URL: only
+use URLs that appear in the original post or in the user's instruction.
+
 === HARD RULES (always apply) ===
 
 1. Use ONLY the HTML tags listed above. NEVER use Markdown or MarkdownV2 syntax
