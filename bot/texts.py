@@ -326,8 +326,21 @@ TEXTS: dict[str, dict[str, str]] = {
             "Провайдер: <b>{provider}</b>\n"
             "Модель: <code>{model}</code>\n"
             "Промпт: <blockquote>{prompt}</blockquote>\n"
-            "Каналы: {channels}"
+            "Режим: {mode}\n"
+            "Форварды: {forwarded}\n"
+            "Каналы: {channels}\n\n"
+            "<blockquote>✏️ <b>Правка</b> — бот редактирует пост на месте. "
+            "🔁 <b>Переотправка</b> — удаляет оригинал и шлёт новый, сохраняя медиа "
+            "(фото/видео/файлы). Форварды редактировать нельзя — для них всегда переотправка.</blockquote>"
         ),
+        "agent_mode_edit": "✏️ Режим: правка",
+        "agent_mode_resend": "🔁 Режим: переотправка",
+        "agent_mode_edit_v": "✏️ правка на месте",
+        "agent_mode_resend_v": "🔁 переотправка (удалить + отправить заново)",
+        "agent_fwd_on": "↪️ Форварды: ВКЛ",
+        "agent_fwd_off": "↪️ Форварды: ВЫКЛ",
+        "agent_fwd_on_v": "реагирует (переотправкой)",
+        "agent_fwd_off_v": "пропускает",
         "agent_edit_name": "✏️ Имя",
         "agent_edit_provider": "🤖 Провайдер",
         "agent_edit_key": "🔑 Ключ",
@@ -864,8 +877,21 @@ TEXTS: dict[str, dict[str, str]] = {
             "Provider: <b>{provider}</b>\n"
             "Model: <code>{model}</code>\n"
             "Prompt: <blockquote>{prompt}</blockquote>\n"
-            "Channels: {channels}"
+            "Mode: {mode}\n"
+            "Forwards: {forwarded}\n"
+            "Channels: {channels}\n\n"
+            "<blockquote>✏️ <b>Edit</b> — the bot edits the post in place. "
+            "🔁 <b>Resend</b> — deletes the original and sends a new one, keeping media "
+            "(photos/videos/files). Forwards can't be edited — they always use resend.</blockquote>"
         ),
+        "agent_mode_edit": "✏️ Mode: edit",
+        "agent_mode_resend": "🔁 Mode: resend",
+        "agent_mode_edit_v": "✏️ edit in place",
+        "agent_mode_resend_v": "🔁 resend (delete + send again)",
+        "agent_fwd_on": "↪️ Forwards: ON",
+        "agent_fwd_off": "↪️ Forwards: OFF",
+        "agent_fwd_on_v": "reacts (via resend)",
+        "agent_fwd_off_v": "skips",
         "agent_edit_name": "✏️ Name",
         "agent_edit_provider": "🤖 Provider",
         "agent_edit_key": "🔑 Key",

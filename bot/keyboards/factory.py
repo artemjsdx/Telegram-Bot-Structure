@@ -71,8 +71,11 @@ def agents_list_kb(agents: list[dict], lang: str = "ru", is_admin: bool = False)
     return InlineKeyboardMarkup(rows)
 
 
-def agent_card_kb(agent_id: int, sys_on: bool, lang: str = "ru") -> InlineKeyboardMarkup:
+def agent_card_kb(agent_id: int, sys_on: bool, lang: str = "ru",
+                  mode: str = "edit", react_fwd: bool = False) -> InlineKeyboardMarkup:
     aid = agent_id
+    mode_key = "agent_mode_resend" if mode == "resend" else "agent_mode_edit"
+    fwd_key = "agent_fwd_on" if react_fwd else "agent_fwd_off"
     return InlineKeyboardMarkup([
         [InlineKeyboardButton(t(lang, "agent_edit_name"), callback_data=f"agent:edit:name:{aid}"),
          InlineKeyboardButton(t(lang, "agent_edit_provider"), callback_data=f"agent:edit:provider:{aid}")],
@@ -82,6 +85,8 @@ def agent_card_kb(agent_id: int, sys_on: bool, lang: str = "ru") -> InlineKeyboa
          InlineKeyboardButton(
              t(lang, "settings_sys_on") if sys_on else t(lang, "settings_sys_off"),
              callback_data=f"agent:edit:sys:{aid}")],
+        [InlineKeyboardButton(t(lang, mode_key), callback_data=f"agent:mode:{aid}"),
+         InlineKeyboardButton(t(lang, fwd_key), callback_data=f"agent:fwd:{aid}")],
         [InlineKeyboardButton(t(lang, "agent_channels"), callback_data=f"agent:chans:{aid}")],
         [InlineKeyboardButton(t(lang, "agent_delete"), callback_data=f"agent:del:{aid}")],
         [back_btn("agent:list", lang), home_btn(lang)],

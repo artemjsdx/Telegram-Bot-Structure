@@ -80,7 +80,9 @@ CREATE TABLE IF NOT EXISTS agents (
     model_id    TEXT    DEFAULT '',
     user_prompt TEXT    DEFAULT '',
     sys_prompt  INTEGER DEFAULT 1,
-    created_at  INTEGER DEFAULT 0
+    created_at  INTEGER DEFAULT 0,
+    struct_mode    TEXT    DEFAULT 'edit',
+    react_forwarded INTEGER DEFAULT 0
 )
 """
 

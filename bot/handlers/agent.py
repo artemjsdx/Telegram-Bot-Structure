@@ -160,15 +160,22 @@ async def _render_card(update: Update, context: ContextTypes.DEFAULT_TYPE,
     prompt_disp = html.escape(raw_prompt[:200])
     if len(raw_prompt) > 200:
         prompt_disp += "…"
+    mode = agent.get("struct_mode") or "edit"
+    react_fwd = bool(agent.get("react_forwarded", 0))
+    mode_v = t(lang, "agent_mode_resend_v" if mode == "resend" else "agent_mode_edit_v")
+    fwd_v = t(lang, "agent_fwd_on_v" if react_fwd else "agent_fwd_off_v")
     text = t(
         lang, "agent_card",
         name=html.escape(agent.get("name") or f"#{aid}"),
         provider=html.escape(prov_label),
         model=html.escape(agent.get("model_id") or "—"),
         prompt=prompt_disp,
+        mode=mode_v,
+        forwarded=fwd_v,
         channels=html.escape(chan_line),
     )
-    kb = agent_card_kb(aid, bool(agent.get("sys_prompt", 1)), lang)
+    kb = agent_card_kb(aid, bool(agent.get("sys_prompt", 1)), lang,
+                       mode=mode, react_fwd=react_fwd)
     q = update.callback_query
     if edit and q:
         try:
@@ -553,6 +560,29 @@ async def on_toggle_sys(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     agent = await get_agent(aid)
     if agent:
         await update_agent(aid, sys_prompt=0 if agent.get("sys_prompt", 1) else 1)
+    await _render_card(update, context, aid, edit=True)
+
+
+async def on_toggle_mode(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Flip the agent's structuring mode between edit-in-place and resend."""
+    q = update.callback_query
+    await q.answer()
+    aid = int(q.data.split(":")[2])
+    agent = await get_agent(aid)
+    if agent:
+        new_mode = "edit" if (agent.get("struct_mode") or "edit") == "resend" else "resend"
+        await update_agent(aid, struct_mode=new_mode)
+    await _render_card(update, context, aid, edit=True)
+
+
+async def on_toggle_fwd(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Toggle whether the agent reacts to forwarded posts (always via resend)."""
+    q = update.callback_query
+    await q.answer()
+    aid = int(q.data.split(":")[2])
+    agent = await get_agent(aid)
+    if agent:
+        await update_agent(aid, react_forwarded=0 if agent.get("react_forwarded", 0) else 1)
     await _render_card(update, context, aid, edit=True)
 
 
@@ -1688,6 +1718,8 @@ def get_agent_handlers() -> list:
         CallbackQueryHandler(on_edit_provider, pattern=r"^agent:edit:provider:"),
         CallbackQueryHandler(on_set_provider, pattern=r"^agent:setprov:[^:]+:\d+$"),
         CallbackQueryHandler(on_toggle_sys, pattern=r"^agent:edit:sys:"),
+        CallbackQueryHandler(on_toggle_mode, pattern=r"^agent:mode:\d+$"),
+        CallbackQueryHandler(on_toggle_fwd, pattern=r"^agent:fwd:\d+$"),
         CallbackQueryHandler(show_channels, pattern=r"^agent:chans:"),
         CallbackQueryHandler(on_del_channel, pattern=r"^agent:delchan:"),
         CallbackQueryHandler(on_delete_yes, pattern=r"^agent:del_yes:"),

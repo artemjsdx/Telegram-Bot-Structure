@@ -287,6 +287,7 @@ async def remove_channel(user_id: int, channel_id: int) -> None:
 
 _AGENT_FIELDS = {
     "name", "provider", "api_base", "api_key", "model_id", "user_prompt", "sys_prompt",
+    "struct_mode", "react_forwarded",
 }
 
 
