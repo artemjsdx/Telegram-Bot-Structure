@@ -984,3 +984,260 @@ async def recent_logs(limit: int = 15) -> list[dict]:
         ) as cur:
             rows = await cur.fetchall()
             return [dict(r) for r in rows]
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# Autoposting (Telethon userbot): accounts, configs, sources, targets, presets
+# ═══════════════════════════════════════════════════════════════════════════
+
+_ACCOUNT_FIELDS = {"api_id", "api_hash", "phone", "session", "nickname", "status"}
+_CONFIG_FIELDS = {
+    "account_id", "enabled", "mode", "poll_interval", "jitter",
+    "max_per_window", "window_sec", "digest_size", "edit_last_n", "prompt",
+}
+
+
+async def create_account(user_id: int, api_id: int = 0, api_hash: str = "",
+                         phone: str = "") -> int:
+    async with aiosqlite.connect(DB_PATH) as db:
+        cur = await db.execute(
+            """INSERT INTO tg_accounts (user_id, api_id, api_hash, phone, status, created_at)
+               VALUES (?,?,?,?,'new',?)""",
+            (user_id, int(api_id or 0), api_hash, phone, int(time.time())),
+        )
+        await db.commit()
+        return cur.lastrowid
+
+
+async def get_account(account_id: int) -> Optional[dict]:
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        async with db.execute("SELECT * FROM tg_accounts WHERE account_id=?",
+                              (account_id,)) as cur:
+            row = await cur.fetchone()
+            return dict(row) if row else None
+
+
+async def get_accounts_for_user(user_id: int) -> list[dict]:
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        async with db.execute(
+            "SELECT * FROM tg_accounts WHERE user_id=? ORDER BY account_id ASC",
+            (user_id,),
+        ) as cur:
+            return [dict(r) for r in await cur.fetchall()]
+
+
+async def update_account(account_id: int, **kwargs) -> None:
+    fields = {k: v for k, v in kwargs.items() if k in _ACCOUNT_FIELDS}
+    if not fields:
+        return
+    async with aiosqlite.connect(DB_PATH) as db:
+        sets = ", ".join(f"{k}=?" for k in fields)
+        await db.execute(f"UPDATE tg_accounts SET {sets} WHERE account_id=?",
+                         list(fields.values()) + [account_id])
+        await db.commit()
+
+
+async def delete_account(account_id: int) -> None:
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute("UPDATE autopost_configs SET account_id=NULL, enabled=0 "
+                         "WHERE account_id=?", (account_id,))
+        await db.execute("DELETE FROM tg_accounts WHERE account_id=?", (account_id,))
+        await db.commit()
+
+
+async def get_or_create_config(agent_id: int, user_id: int) -> dict:
+    existing = await get_config_by_agent(agent_id)
+    if existing:
+        return existing
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute(
+            """INSERT INTO autopost_configs (agent_id, user_id, created_at)
+               VALUES (?,?,?)""",
+            (agent_id, user_id, int(time.time())),
+        )
+        await db.commit()
+    return await get_config_by_agent(agent_id)
+
+
+async def get_config(config_id: int) -> Optional[dict]:
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        async with db.execute("SELECT * FROM autopost_configs WHERE config_id=?",
+                              (config_id,)) as cur:
+            row = await cur.fetchone()
+            return dict(row) if row else None
+
+
+async def get_config_by_agent(agent_id: int) -> Optional[dict]:
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        async with db.execute("SELECT * FROM autopost_configs WHERE agent_id=?",
+                              (agent_id,)) as cur:
+            row = await cur.fetchone()
+            return dict(row) if row else None
+
+
+async def update_config(config_id: int, **kwargs) -> None:
+    fields = {k: v for k, v in kwargs.items() if k in _CONFIG_FIELDS}
+    if not fields:
+        return
+    async with aiosqlite.connect(DB_PATH) as db:
+        sets = ", ".join(f"{k}=?" for k in fields)
+        await db.execute(f"UPDATE autopost_configs SET {sets} WHERE config_id=?",
+                         list(fields.values()) + [config_id])
+        await db.commit()
+
+
+async def get_enabled_configs() -> list[dict]:
+    """All enabled autopost configs that have a linked account — for the worker."""
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        async with db.execute(
+            "SELECT * FROM autopost_configs WHERE enabled=1 AND account_id IS NOT NULL"
+        ) as cur:
+            return [dict(r) for r in await cur.fetchall()]
+
+
+async def delete_config_for_agent(agent_id: int) -> None:
+    async with aiosqlite.connect(DB_PATH) as db:
+        async with db.execute("SELECT config_id FROM autopost_configs WHERE agent_id=?",
+                              (agent_id,)) as cur:
+            rows = await cur.fetchall()
+        for (cid,) in rows:
+            await db.execute("DELETE FROM autopost_sources WHERE config_id=?", (cid,))
+            await db.execute("DELETE FROM autopost_targets WHERE config_id=?", (cid,))
+            await db.execute("DELETE FROM autopost_sent WHERE config_id=?", (cid,))
+        await db.execute("DELETE FROM autopost_configs WHERE agent_id=?", (agent_id,))
+        await db.commit()
+
+
+async def add_source(config_id: int, chat_id: int, title: str = "",
+                     kind: str = "channel") -> None:
+    async with aiosqlite.connect(DB_PATH) as db:
+        async with db.execute(
+            "SELECT source_id FROM autopost_sources WHERE config_id=? AND chat_id=?",
+            (config_id, chat_id),
+        ) as cur:
+            if await cur.fetchone():
+                return
+        await db.execute(
+            "INSERT INTO autopost_sources (config_id, chat_id, title, kind) VALUES (?,?,?,?)",
+            (config_id, chat_id, title, kind),
+        )
+        await db.commit()
+
+
+async def get_sources(config_id: int) -> list[dict]:
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        async with db.execute("SELECT * FROM autopost_sources WHERE config_id=? ORDER BY source_id",
+                              (config_id,)) as cur:
+            return [dict(r) for r in await cur.fetchall()]
+
+
+async def remove_source(source_id: int) -> None:
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute("DELETE FROM autopost_sources WHERE source_id=?", (source_id,))
+        await db.commit()
+
+
+async def update_source_cursor(source_id: int, last_seen_id: int) -> None:
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute("UPDATE autopost_sources SET last_seen_id=? WHERE source_id=?",
+                         (last_seen_id, source_id))
+        await db.commit()
+
+
+async def add_target(config_id: int, chat_id: int, title: str = "") -> None:
+    async with aiosqlite.connect(DB_PATH) as db:
+        async with db.execute(
+            "SELECT target_id FROM autopost_targets WHERE config_id=? AND chat_id=?",
+            (config_id, chat_id),
+        ) as cur:
+            if await cur.fetchone():
+                return
+        await db.execute(
+            "INSERT INTO autopost_targets (config_id, chat_id, title) VALUES (?,?,?)",
+            (config_id, chat_id, title),
+        )
+        await db.commit()
+
+
+async def get_targets(config_id: int) -> list[dict]:
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        async with db.execute("SELECT * FROM autopost_targets WHERE config_id=? ORDER BY target_id",
+                              (config_id,)) as cur:
+            return [dict(r) for r in await cur.fetchall()]
+
+
+async def remove_target(target_id: int) -> None:
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute("DELETE FROM autopost_targets WHERE target_id=?", (target_id,))
+        await db.commit()
+
+
+async def record_sent(config_id: int, target_chat: int, message_id: int, ts: int) -> None:
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute(
+            "INSERT INTO autopost_sent (config_id, target_chat, message_id, ts) VALUES (?,?,?,?)",
+            (config_id, target_chat, message_id, ts),
+        )
+        await db.commit()
+
+
+async def get_recent_sent(config_id: int, n: int) -> list[dict]:
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        async with db.execute(
+            "SELECT * FROM autopost_sent WHERE config_id=? ORDER BY id DESC LIMIT ?",
+            (config_id, n),
+        ) as cur:
+            return [dict(r) for r in await cur.fetchall()]
+
+
+async def count_sent_since(config_id: int, since_ts: int) -> int:
+    async with aiosqlite.connect(DB_PATH) as db:
+        async with db.execute(
+            "SELECT COUNT(*) FROM autopost_sent WHERE config_id=? AND ts>=?",
+            (config_id, since_ts),
+        ) as cur:
+            row = await cur.fetchone()
+            return row[0] if row else 0
+
+
+async def create_autopost_preset(user_id: int, name: str, body: str) -> int:
+    async with aiosqlite.connect(DB_PATH) as db:
+        cur = await db.execute(
+            "INSERT INTO autopost_presets (user_id, name, body, created_at) VALUES (?,?,?,?)",
+            (user_id, name, body, int(time.time())),
+        )
+        await db.commit()
+        return cur.lastrowid
+
+
+async def get_autopost_presets(user_id: int) -> list[dict]:
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        async with db.execute(
+            "SELECT * FROM autopost_presets WHERE user_id=? ORDER BY preset_id DESC",
+            (user_id,),
+        ) as cur:
+            return [dict(r) for r in await cur.fetchall()]
+
+
+async def get_autopost_preset(preset_id: int) -> Optional[dict]:
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        async with db.execute("SELECT * FROM autopost_presets WHERE preset_id=?",
+                              (preset_id,)) as cur:
+            row = await cur.fetchone()
+            return dict(row) if row else None
+
+
+async def delete_autopost_preset(preset_id: int) -> None:
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute("DELETE FROM autopost_presets WHERE preset_id=?", (preset_id,))
+        await db.commit()

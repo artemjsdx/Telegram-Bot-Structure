@@ -137,6 +137,79 @@ CREATE TABLE IF NOT EXISTS preset_shares (
 )
 """
 
+CREATE_TG_ACCOUNTS = """
+CREATE TABLE IF NOT EXISTS tg_accounts (
+    account_id  INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id     INTEGER NOT NULL,
+    api_id      INTEGER DEFAULT 0,
+    api_hash    TEXT    DEFAULT '',
+    phone       TEXT    DEFAULT '',
+    session     TEXT    DEFAULT '',
+    nickname    TEXT    DEFAULT '',
+    status      TEXT    DEFAULT 'new',
+    created_at  INTEGER DEFAULT 0
+)
+"""
+
+CREATE_AUTOPOST_CONFIGS = """
+CREATE TABLE IF NOT EXISTS autopost_configs (
+    config_id      INTEGER PRIMARY KEY AUTOINCREMENT,
+    agent_id       INTEGER NOT NULL,
+    user_id        INTEGER NOT NULL,
+    account_id     INTEGER,
+    enabled        INTEGER DEFAULT 0,
+    mode           TEXT    DEFAULT 'forward',
+    poll_interval  INTEGER DEFAULT 60,
+    jitter         INTEGER DEFAULT 15,
+    max_per_window INTEGER DEFAULT 10,
+    window_sec     INTEGER DEFAULT 3600,
+    digest_size    INTEGER DEFAULT 100,
+    edit_last_n    INTEGER DEFAULT 0,
+    prompt         TEXT    DEFAULT '',
+    created_at     INTEGER DEFAULT 0
+)
+"""
+
+CREATE_AUTOPOST_SOURCES = """
+CREATE TABLE IF NOT EXISTS autopost_sources (
+    source_id    INTEGER PRIMARY KEY AUTOINCREMENT,
+    config_id    INTEGER NOT NULL,
+    chat_id      INTEGER NOT NULL,
+    title        TEXT    DEFAULT '',
+    kind         TEXT    DEFAULT 'channel',
+    last_seen_id INTEGER DEFAULT 0
+)
+"""
+
+CREATE_AUTOPOST_TARGETS = """
+CREATE TABLE IF NOT EXISTS autopost_targets (
+    target_id  INTEGER PRIMARY KEY AUTOINCREMENT,
+    config_id  INTEGER NOT NULL,
+    chat_id    INTEGER NOT NULL,
+    title      TEXT    DEFAULT ''
+)
+"""
+
+CREATE_AUTOPOST_SENT = """
+CREATE TABLE IF NOT EXISTS autopost_sent (
+    id           INTEGER PRIMARY KEY AUTOINCREMENT,
+    config_id    INTEGER NOT NULL,
+    target_chat  INTEGER NOT NULL,
+    message_id   INTEGER NOT NULL,
+    ts           INTEGER NOT NULL
+)
+"""
+
+CREATE_AUTOPOST_PRESETS = """
+CREATE TABLE IF NOT EXISTS autopost_presets (
+    preset_id   INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id     INTEGER NOT NULL,
+    name        TEXT    DEFAULT '',
+    body        TEXT    DEFAULT '',
+    created_at  INTEGER DEFAULT 0
+)
+"""
+
 CREATE_INDEXES = [
     "CREATE INDEX IF NOT EXISTS idx_channels_user ON channels(user_id)",
     "CREATE INDEX IF NOT EXISTS idx_agents_user ON agents(user_id)",
@@ -149,6 +222,13 @@ CREATE_INDEXES = [
     "CREATE INDEX IF NOT EXISTS idx_preset_shares_to ON preset_shares(to_user)",
     "CREATE INDEX IF NOT EXISTS idx_users_created_at ON users(created_at)",
     "CREATE INDEX IF NOT EXISTS idx_users_blocked_at ON users(blocked_at)",
+    "CREATE INDEX IF NOT EXISTS idx_tg_accounts_user ON tg_accounts(user_id)",
+    "CREATE INDEX IF NOT EXISTS idx_autopost_configs_agent ON autopost_configs(agent_id)",
+    "CREATE INDEX IF NOT EXISTS idx_autopost_configs_user ON autopost_configs(user_id)",
+    "CREATE INDEX IF NOT EXISTS idx_autopost_sources_config ON autopost_sources(config_id)",
+    "CREATE INDEX IF NOT EXISTS idx_autopost_targets_config ON autopost_targets(config_id)",
+    "CREATE INDEX IF NOT EXISTS idx_autopost_sent_config ON autopost_sent(config_id)",
+    "CREATE INDEX IF NOT EXISTS idx_autopost_presets_user ON autopost_presets(user_id)",
 ]
 
 
@@ -163,6 +243,12 @@ async def create_tables(db: aiosqlite.Connection) -> None:
     await db.execute(CREATE_REQUEST_LOG)
     await db.execute(CREATE_USER_PRESETS)
     await db.execute(CREATE_PRESET_SHARES)
+    await db.execute(CREATE_TG_ACCOUNTS)
+    await db.execute(CREATE_AUTOPOST_CONFIGS)
+    await db.execute(CREATE_AUTOPOST_SOURCES)
+    await db.execute(CREATE_AUTOPOST_TARGETS)
+    await db.execute(CREATE_AUTOPOST_SENT)
+    await db.execute(CREATE_AUTOPOST_PRESETS)
     for idx in CREATE_INDEXES:
         await db.execute(idx)
     await db.commit()
