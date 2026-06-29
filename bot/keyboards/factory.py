@@ -87,10 +87,34 @@ def agent_card_kb(agent_id: int, sys_on: bool, lang: str = "ru",
              callback_data=f"agent:edit:sys:{aid}")],
         [InlineKeyboardButton(t(lang, mode_key), callback_data=f"agent:mode:{aid}"),
          InlineKeyboardButton(t(lang, fwd_key), callback_data=f"agent:fwd:{aid}")],
+        [InlineKeyboardButton(t(lang, "agent_web_btn"), callback_data=f"agent:web:{aid}")],
         [InlineKeyboardButton(t(lang, "agent_channels"), callback_data=f"agent:chans:{aid}")],
         [InlineKeyboardButton(t(lang, "agent_delete"), callback_data=f"agent:del:{aid}")],
         [back_btn("agent:list", lang), home_btn(lang)],
     ])
+
+
+def agent_web_kb(agent_id: int, agent: dict, lang: str = "ru") -> InlineKeyboardMarkup:
+    aid = agent_id
+    on = bool(agent.get("web_search", 0))
+    rows = [[InlineKeyboardButton(
+        t(lang, "agent_web_on") if on else t(lang, "agent_web_off"),
+        callback_data=f"agent:webtog:{aid}")]]
+    if on:
+        has_key = bool((agent.get("web_key") or "").strip())
+        rows += [
+            [InlineKeyboardButton(t(lang, "agent_web_results", n=agent.get("web_results") or 5),
+                                  callback_data=f"agent:webres:{aid}")],
+            [InlineKeyboardButton(t(lang, "agent_web_snippet", n=agent.get("web_snippet") or 1500),
+                                  callback_data=f"agent:websnip:{aid}")],
+            [InlineKeyboardButton(t(lang, "agent_web_rounds", n=agent.get("web_rounds") or 3),
+                                  callback_data=f"agent:webrnd:{aid}")],
+            [InlineKeyboardButton(
+                t(lang, "agent_web_key_set" if has_key else "agent_web_key"),
+                callback_data=f"agent:webkey:{aid}")],
+        ]
+    rows.append([back_btn(f"agent:view:{aid}", lang), home_btn(lang)])
+    return InlineKeyboardMarkup(rows)
 
 
 def agent_channels_kb(agent_id: int, channels: list[dict], lang: str = "ru") -> InlineKeyboardMarkup:

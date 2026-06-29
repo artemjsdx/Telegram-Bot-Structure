@@ -341,6 +341,36 @@ TEXTS: dict[str, dict[str, str]] = {
         "agent_fwd_off": "↪️ Форварды: ВЫКЛ",
         "agent_fwd_on_v": "реагирует (переотправкой)",
         "agent_fwd_off_v": "пропускает",
+        "agent_web_btn": "🌐 Веб-поиск",
+        "agent_web_title": (
+            "🌐 <b>Веб-поиск</b>\n\n"
+            "Состояние: <b>{state}</b>\n"
+            "Сайтов на запрос: <b>{results}</b>\n"
+            "Длина фрагмента сайта: <b>{snippet}</b> симв.\n"
+            "Раундов поиска: <b>{rounds}</b>\n"
+            "API-ключ: <b>{key}</b>\n\n"
+            "<blockquote>Когда модели не хватает данных для точного поста (актуальные "
+            "лимиты сервиса, детали новости, проверка фактов), она сама ищет в интернете "
+            "через DuckDuckGo, видит дату источников и может раскрыть полную версию "
+            "нужного результата. API-ключ не обязателен.</blockquote>"
+        ),
+        "agent_web_on": "🌐 Веб-поиск: ВКЛ",
+        "agent_web_off": "🌐 Веб-поиск: ВЫКЛ",
+        "agent_web_state_on": "включён",
+        "agent_web_state_off": "выключен",
+        "agent_web_results": "🔎 Сайтов на запрос: {n}",
+        "agent_web_snippet": "📄 Длина фрагмента: {n}",
+        "agent_web_rounds": "🔁 Раундов поиска: {n}",
+        "agent_web_key": "🔑 API-ключ (опц.)",
+        "agent_web_key_set": "🔑 API-ключ: задан ✅",
+        "agent_web_key_none": "не задан (DuckDuckGo бесплатно)",
+        "agent_web_key_yes": "задан",
+        "agent_web_key_ask": (
+            "🔑 Пришлите API-ключ поискового сервиса (Brave/Serper/Tavily) одним сообщением.\n\n"
+            "<blockquote>Это <b>не обязательно</b>: без ключа поиск работает через "
+            "DuckDuckGo бесплатно. Чтобы очистить ключ — пришлите «-».</blockquote>"
+        ),
+        "agent_web_key_saved": "✅ Готово.",
         "agent_edit_name": "✏️ Имя",
         "agent_edit_provider": "🤖 Провайдер",
         "agent_edit_key": "🔑 Ключ",
@@ -892,6 +922,36 @@ TEXTS: dict[str, dict[str, str]] = {
         "agent_fwd_off": "↪️ Forwards: OFF",
         "agent_fwd_on_v": "reacts (via resend)",
         "agent_fwd_off_v": "skips",
+        "agent_web_btn": "🌐 Web search",
+        "agent_web_title": (
+            "🌐 <b>Web search</b>\n\n"
+            "State: <b>{state}</b>\n"
+            "Sites per query: <b>{results}</b>\n"
+            "Site snippet length: <b>{snippet}</b> chars\n"
+            "Search rounds: <b>{rounds}</b>\n"
+            "API key: <b>{key}</b>\n\n"
+            "<blockquote>When the model lacks data for an accurate post (current "
+            "service limits, news details, fact-checking), it searches the web via "
+            "DuckDuckGo, sees source dates, and can expand the full version of a "
+            "result. The API key is optional.</blockquote>"
+        ),
+        "agent_web_on": "🌐 Web search: ON",
+        "agent_web_off": "🌐 Web search: OFF",
+        "agent_web_state_on": "on",
+        "agent_web_state_off": "off",
+        "agent_web_results": "🔎 Sites per query: {n}",
+        "agent_web_snippet": "📄 Snippet length: {n}",
+        "agent_web_rounds": "🔁 Search rounds: {n}",
+        "agent_web_key": "🔑 API key (opt.)",
+        "agent_web_key_set": "🔑 API key: set ✅",
+        "agent_web_key_none": "none (DuckDuckGo, free)",
+        "agent_web_key_yes": "set",
+        "agent_web_key_ask": (
+            "🔑 Send a search-service API key (Brave/Serper/Tavily) in one message.\n\n"
+            "<blockquote>This is <b>optional</b>: without a key, search works via "
+            "DuckDuckGo for free. Send «-» to clear the key.</blockquote>"
+        ),
+        "agent_web_key_saved": "✅ Done.",
         "agent_edit_name": "✏️ Name",
         "agent_edit_provider": "🤖 Provider",
         "agent_edit_key": "🔑 Key",

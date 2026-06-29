@@ -49,6 +49,11 @@ COLUMN_MIGRATIONS: list[tuple[str, str, str]] = [
     ("channels", "agent_id",      "INTEGER"),
     ("agents", "struct_mode",      "TEXT    DEFAULT 'edit'"),
     ("agents", "react_forwarded",  "INTEGER DEFAULT 0"),
+    ("agents", "web_search",       "INTEGER DEFAULT 0"),
+    ("agents", "web_results",      "INTEGER DEFAULT 5"),
+    ("agents", "web_snippet",      "INTEGER DEFAULT 1500"),
+    ("agents", "web_rounds",       "INTEGER DEFAULT 3"),
+    ("agents", "web_key",          "TEXT    DEFAULT ''"),
 ]
 
 # ---------------------------------------------------------------------------
@@ -67,7 +72,12 @@ NEW_TABLE_SQL: list[str] = [
         sys_prompt  INTEGER DEFAULT 1,
         created_at  INTEGER DEFAULT 0,
         struct_mode    TEXT    DEFAULT 'edit',
-        react_forwarded INTEGER DEFAULT 0
+        react_forwarded INTEGER DEFAULT 0,
+        web_search   INTEGER DEFAULT 0,
+        web_results  INTEGER DEFAULT 5,
+        web_snippet  INTEGER DEFAULT 1500,
+        web_rounds   INTEGER DEFAULT 3,
+        web_key      TEXT    DEFAULT ''
     )""",
     """CREATE TABLE IF NOT EXISTS channels (
         channel_id  INTEGER NOT NULL,

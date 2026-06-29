@@ -30,6 +30,7 @@ from core.limits import (
 from core.preview import send_preview
 from core.queue import queue
 from core.replacer import replace_post
+from core.research import RESEARCH_INSTRUCTIONS, run_with_research
 from core.resend import resend_post
 from core.sanitize import sanitize_html
 from db.storage import (
@@ -135,6 +136,9 @@ async def _process_post(context: ContextTypes.DEFAULT_TYPE, msgs: list[Message])
             content_parts.append(
                 f"[SYSTEM INSTRUCTIONS]\n{sys_text}\n[/SYSTEM INSTRUCTIONS]\n"
             )
+    web_on = bool(agent.get("web_search", 0))
+    if web_on:
+        content_parts.append(RESEARCH_INSTRUCTIONS)
     content_parts.append(
         f"{prompt}\n\nPost (original Telegram HTML formatting — keep the styling "
         f"you don't change):\n{post_html}"
@@ -145,10 +149,22 @@ async def _process_post(context: ContextTypes.DEFAULT_TYPE, msgs: list[Message])
     provider_name, model = creds["provider"], creds["model"]
     prov = get_provider(provider_name)
 
-    async def call(convo: list[dict]) -> str:
+    async def base_call(convo: list[dict]) -> str:
         return await queue.enqueue(
             lambda: prov.chat(creds["api_base"], creds["api_key"], model, convo)
         )
+
+    research_cfg = {
+        "enabled": web_on,
+        "results_n": int(agent.get("web_results") or 5),
+        "snippet_chars": int(agent.get("web_snippet") or 1500),
+        "full_chars": max(2000, int(agent.get("web_snippet") or 1500) * 4),
+        "max_rounds": int(agent.get("web_rounds") or 3),
+        "api_key": (agent.get("web_key") or "").strip() or None,
+    }
+
+    async def call(convo: list[dict]) -> str:
+        return await run_with_research(base_call, convo, research_cfg)
 
     logger.info(
         "Processing post chan=%s agent=%s provider=%s model=%s mode=%s fwd=%s "

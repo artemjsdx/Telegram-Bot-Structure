@@ -79,4 +79,5 @@ PAGE_SIZE_LOGS = 15
     T_MENUCHAN_ID,
     T_MENUCHAN_LINK,
     T_USER_SEARCH,
-) = range(100, 114)
+    T_WEB_KEY,
+) = range(100, 115)

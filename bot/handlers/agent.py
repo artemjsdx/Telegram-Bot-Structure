@@ -32,7 +32,7 @@ from config import DEFAULT_LANG
 from constants import (
     A_NAME, A_PROVIDER, A_API_BASE, A_API_KEY, A_MODEL,
     A_PROMPT, A_SYS_TOGGLE, A_BIND, A_MODEL_SEARCH,
-    PROVIDER_ORDER,
+    PROVIDER_ORDER, T_WEB_KEY,
 )
 from core.ai_client import verify, fetch_models, resolve_creds_from_agent
 from core.formatter import list_presets, get_preset
@@ -49,7 +49,8 @@ from handlers.channel import verify_forwarded_channel
 from handlers.menu import nav, is_admin, send_main_menu
 from keyboards.factory import (
     agents_list_kb, agent_card_kb, agent_channels_kb, agent_provider_kb,
-    model_kb, confirm_kb, home_btn, PROVIDER_LABELS,
+    agent_web_kb,
+    model_kb, confirm_kb, home_btn, back_btn, PROVIDER_LABELS,
     preset_lib_kb, preset_detail_kb, preset_suggest_kb, preset_collect_kb,
     preset_mode_kb, preset_share_confirm_kb, pshare_offer_kb,
 )
@@ -584,6 +585,112 @@ async def on_toggle_fwd(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     if agent:
         await update_agent(aid, react_forwarded=0 if agent.get("react_forwarded", 0) else 1)
     await _render_card(update, context, aid, edit=True)
+
+
+# ───── Web search settings ─────
+_WEB_RESULTS_STEPS = [3, 5, 7, 10]
+_WEB_SNIPPET_STEPS = [800, 1500, 3000, 5000]
+_WEB_ROUNDS_STEPS = [2, 3, 5, 8]
+
+
+def _cycle(steps: list[int], current: int) -> int:
+    """Next value in a cyclic list of presets (wraps around)."""
+    try:
+        return steps[(steps.index(current) + 1) % len(steps)]
+    except ValueError:
+        return steps[0]
+
+
+async def _render_web(update: Update, context: ContextTypes.DEFAULT_TYPE, aid: int) -> None:
+    user = await get_user(update.effective_user.id)
+    lang = (user or {}).get("lang") or DEFAULT_LANG
+    agent = await get_agent(aid)
+    if not agent:
+        await show_agents(update, context)
+        return
+    on = bool(agent.get("web_search", 0))
+    has_key = bool((agent.get("web_key") or "").strip())
+    text = t(
+        lang, "agent_web_title",
+        state=t(lang, "agent_web_state_on" if on else "agent_web_state_off"),
+        results=agent.get("web_results") or 5,
+        snippet=agent.get("web_snippet") or 1500,
+        rounds=agent.get("web_rounds") or 3,
+        key=t(lang, "agent_web_key_yes" if has_key else "agent_web_key_none"),
+    )
+    kb = agent_web_kb(aid, agent, lang)
+    q = update.callback_query
+    if q:
+        try:
+            await q.edit_message_text(text, parse_mode=ParseMode.HTML, reply_markup=kb)
+            return
+        except Exception:
+            pass
+    await nav(update, context, text, kb)
+
+
+async def show_web(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    q = update.callback_query
+    await q.answer()
+    await _render_web(update, context, int(q.data.split(":")[2]))
+
+
+async def on_web_toggle(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    q = update.callback_query
+    await q.answer()
+    aid = int(q.data.split(":")[2])
+    agent = await get_agent(aid)
+    if agent:
+        await update_agent(aid, web_search=0 if agent.get("web_search", 0) else 1)
+    await _render_web(update, context, aid)
+
+
+async def on_web_cycle(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Cycle one numeric web-search setting to its next preset value."""
+    q = update.callback_query
+    await q.answer()
+    parts = q.data.split(":")
+    kind, aid = parts[1], int(parts[2])
+    agent = await get_agent(aid)
+    if agent:
+        if kind == "webres":
+            await update_agent(aid, web_results=_cycle(_WEB_RESULTS_STEPS, agent.get("web_results") or 5))
+        elif kind == "websnip":
+            await update_agent(aid, web_snippet=_cycle(_WEB_SNIPPET_STEPS, agent.get("web_snippet") or 1500))
+        elif kind == "webrnd":
+            await update_agent(aid, web_rounds=_cycle(_WEB_ROUNDS_STEPS, agent.get("web_rounds") or 3))
+    await _render_web(update, context, aid)
+
+
+async def ask_web_key(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    q = update.callback_query
+    await q.answer()
+    aid = int(q.data.split(":")[2])
+    user = await get_user(q.from_user.id)
+    lang = (user or {}).get("lang") or DEFAULT_LANG
+    context.user_data["web_key_aid"] = aid
+    await q.edit_message_text(
+        t(lang, "agent_web_key_ask"), parse_mode=ParseMode.HTML,
+        reply_markup=InlineKeyboardMarkup([[back_btn(f"agent:web:{aid}", lang)]]),
+    )
+    return T_WEB_KEY
+
+
+async def got_web_key(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    aid = context.user_data.get("web_key_aid")
+    raw = (update.message.text or "").strip()
+    key = "" if raw in ("-", "—") else raw
+    if aid:
+        await update_agent(aid, web_key=key)
+    await _render_web(update, context, aid)
+    return ConversationHandler.END
+
+
+async def web_key_back(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    q = update.callback_query
+    await q.answer()
+    await _render_web(update, context, int(q.data.split(":")[2]))
+    return ConversationHandler.END
 
 
 # ───── Agent channels submenu ─────
@@ -1710,6 +1817,22 @@ def get_agent_handlers() -> list:
         allow_reentry=True, per_message=False, name="agent_addchan", persistent=False,
     )
 
+    web_key_conv = ConversationHandler(
+        entry_points=[CallbackQueryHandler(ask_web_key, pattern=r"^agent:webkey:\d+$")],
+        states={
+            T_WEB_KEY: [
+                CallbackQueryHandler(web_key_back, pattern=r"^agent:web:\d+$"),
+                MessageHandler(filters.TEXT & ~filters.COMMAND, got_web_key),
+            ],
+        },
+        fallbacks=[
+            CommandHandler("cancel", cancel),
+            CallbackQueryHandler(web_key_back, pattern=r"^agent:web:\d+$"),
+            CallbackQueryHandler(cancel_to_home, pattern=r"^menu:home$"),
+        ],
+        allow_reentry=True, per_message=False, name="agent_webkey", persistent=False,
+    )
+
     return [
         create_conv,
         edit_name_conv,
@@ -1717,6 +1840,7 @@ def get_agent_handlers() -> list:
         edit_key_conv,
         edit_model_conv,
         addchan_conv,
+        web_key_conv,
         CallbackQueryHandler(skip_setup, pattern=r"^agent:skip_setup$"),
         CallbackQueryHandler(show_agents, pattern=r"^agent:list$"),
         CallbackQueryHandler(show_agent_card, pattern=r"^agent:view:"),
@@ -1725,6 +1849,9 @@ def get_agent_handlers() -> list:
         CallbackQueryHandler(on_toggle_sys, pattern=r"^agent:edit:sys:"),
         CallbackQueryHandler(on_toggle_mode, pattern=r"^agent:mode:\d+$"),
         CallbackQueryHandler(on_toggle_fwd, pattern=r"^agent:fwd:\d+$"),
+        CallbackQueryHandler(show_web, pattern=r"^agent:web:\d+$"),
+        CallbackQueryHandler(on_web_toggle, pattern=r"^agent:webtog:\d+$"),
+        CallbackQueryHandler(on_web_cycle, pattern=r"^agent:(?:webres|websnip|webrnd):\d+$"),
         CallbackQueryHandler(show_channels, pattern=r"^agent:chans:"),
         CallbackQueryHandler(on_del_channel, pattern=r"^agent:delchan:"),
         CallbackQueryHandler(on_delete_yes, pattern=r"^agent:del_yes:"),

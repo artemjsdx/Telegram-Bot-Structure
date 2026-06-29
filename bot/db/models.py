@@ -82,7 +82,12 @@ CREATE TABLE IF NOT EXISTS agents (
     sys_prompt  INTEGER DEFAULT 1,
     created_at  INTEGER DEFAULT 0,
     struct_mode    TEXT    DEFAULT 'edit',
-    react_forwarded INTEGER DEFAULT 0
+    react_forwarded INTEGER DEFAULT 0,
+    web_search   INTEGER DEFAULT 0,
+    web_results  INTEGER DEFAULT 5,
+    web_snippet  INTEGER DEFAULT 1500,
+    web_rounds   INTEGER DEFAULT 3,
+    web_key      TEXT    DEFAULT ''
 )
 """
 
