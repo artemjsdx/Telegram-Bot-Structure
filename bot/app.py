@@ -29,6 +29,7 @@ from db.storage import init_db, get_user, set_admin, get_setting
 from db.migrate import run_migrations
 from core.monitor import handle_channel_post
 from core.queue import queue
+from core.autopost import autopost
 from core.preview import (
     on_preview_ok, on_preview_no, on_preview_edit, on_preview_edit_text,
     on_preview_edit_cancel,
@@ -154,9 +155,12 @@ async def post_init(app: Application) -> None:
     queue.start()
     log.info("Request queue started.")
 
+    autopost.start()
+
 
 async def post_shutdown(app: Application) -> None:
     await queue.stop()
+    await autopost.stop()
 
 
 async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> None:
