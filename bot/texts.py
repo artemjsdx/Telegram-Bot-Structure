@@ -24,6 +24,7 @@ TEXTS: dict[str, dict[str, str]] = {
 
         # --- main menu ---
         "menu_title": "<b>🤖 Channel AI Bot</b>\n\nПереписываю посты в ваших каналах через ИИ.\nВыберите раздел:",
+        "menu_about": "ℹ️ О боте",
         "menu_settings": "⚙️ Настройки",
         "menu_channels": "📣 Каналы",
         "menu_stats": "📊 Статистика",
@@ -36,6 +37,13 @@ TEXTS: dict[str, dict[str, str]] = {
         "start_welcome": "👋 Добро пожаловать! Давайте настроим бота.",
         "help_text": (
             "<b>❓ Помощь</b>\n\n"
+            "Бот переписывает посты в ваших каналах через ИИ. Полное описание всех разделов — "
+            "в кнопке <b>ℹ️ О боте</b> на главном экране.\n\n"
+            "🆘 Нашли баг или ошибку — либо хотите предложить сотрудничество? "
+            "Напишите в поддержку: {support}"
+        ),
+        "about_text": (
+            "<b>ℹ️ О боте</b>\n\n"
             "Бот переписывает посты в ваших каналах через ИИ. Вы создаёте «агента» — связку "
             "ИИ + стиль — и привязываете к нему канал. Каждый новый пост канала бот "
             "автоматически переписывает в заданном стиле.\n\n"
@@ -58,6 +66,12 @@ TEXTS: dict[str, dict[str, str]] = {
             "форматирование).\n"
             "• <b>🎨 Сис.промпт</b> — передавать промпт как «системный». Обычно ВКЛ: модель "
             "строже держит стиль.\n"
+            "• <b>✏️ Режим</b> — <b>правка</b> поста на месте или <b>🔁 переотправка</b> "
+            "(удалить оригинал и отправить новый, сохранив фото/видео/файлы).\n"
+            "• <b>↪️ Форварды</b> — реагировать ли на пересланные посты (их нельзя "
+            "редактировать, поэтому всегда переотправкой).\n"
+            "• <b>🌐 Веб-поиск</b> — разрешить модели искать в интернете (DuckDuckGo), видеть "
+            "даты источников и раскрывать полные версии — для актуальных и точных постов.\n"
             "• <b>📣 Каналы</b> — привязать/отвязать каналы агента.\n"
             "• <b>🗑 Удалить</b> — удалить агента.\n\n"
 
@@ -610,6 +624,7 @@ TEXTS: dict[str, dict[str, str]] = {
         "post_failed_dm": "⚠️ Couldn't rewrite a post in “{channel}”.\nReason: {error}",
 
         "menu_title": "<b>🤖 Channel AI Bot</b>\n\nI rewrite posts in your channels with AI.\nChoose a section:",
+        "menu_about": "ℹ️ About",
         "menu_settings": "⚙️ Settings",
         "menu_channels": "📣 Channels",
         "menu_stats": "📊 Stats",
@@ -621,6 +636,13 @@ TEXTS: dict[str, dict[str, str]] = {
         "start_welcome": "👋 Welcome! Let's set up the bot.",
         "help_text": (
             "<b>❓ Help</b>\n\n"
+            "The bot rewrites your channel posts with AI. A full description of every "
+            "section lives under the <b>ℹ️ About</b> button on the main screen.\n\n"
+            "🆘 Found a bug or an error — or want to discuss cooperation? "
+            "Message support: {support}"
+        ),
+        "about_text": (
+            "<b>ℹ️ About</b>\n\n"
             "The bot rewrites your channel posts with AI. You create an “agent” — an "
             "AI + style bundle — and link a channel to it. Every new post in that channel "
             "is automatically rewritten in the chosen style.\n\n"
@@ -641,8 +663,14 @@ TEXTS: dict[str, dict[str, str]] = {
             "and with which key.\n"
             "• <b>✏️ Prompt</b> — the instruction for HOW to rewrite a post (style, "
             "structure, formatting).\n"
-            "• <b>🎨 System prompt</b> — send the prompt as a “system” one. Usually ON: the "
+            "• <b>🎨 System prompt</b> — send the prompt as a \"system\" one. Usually ON: the "
             "model keeps the style more strictly.\n"
+            "• <b>✏️ Mode</b> — <b>edit</b> the post in place or <b>🔁 resend</b> "
+            "(delete the original and send a new one, keeping photos/videos/files).\n"
+            "• <b>↪️ Forwards</b> — react to forwarded posts or not (they can't be edited, "
+            "so always resent).\n"
+            "• <b>🌐 Web search</b> — let the model search the web (DuckDuckGo), see source "
+            "dates, and expand full versions — for accurate and up-to-date posts.\n"
             "• <b>📣 Channels</b> — link/unlink the agent's channels.\n"
             "• <b>🗑 Delete</b> — remove the agent.\n\n"
 

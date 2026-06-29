@@ -58,16 +58,16 @@ def agents_list_kb(agents: list[dict], lang: str = "ru", is_admin: bool = False)
         name = a.get("name") or f"#{a['agent_id']}"
         rows.append([InlineKeyboardButton(f"🤖 {name}", callback_data=f"agent:view:{a['agent_id']}")])
     rows.append([InlineKeyboardButton(t(lang, "agent_create"), callback_data="agent:new")])
-    # Two-per-row so no label gets squeezed into a third of the width (was
-    # truncating "📊 Статистика"). Help pairs with Admin when present, else stands alone.
     rows.append([
+        InlineKeyboardButton(t(lang, "menu_about"), callback_data="menu:about"),
         InlineKeyboardButton(t(lang, "menu_settings"), callback_data="menu:settings"),
-        InlineKeyboardButton(t(lang, "menu_stats"), callback_data="menu:stats"),
     ])
-    help_row = [InlineKeyboardButton(t(lang, "menu_help"), callback_data="menu:help")]
+    rows.append([
+        InlineKeyboardButton(t(lang, "menu_stats"), callback_data="menu:stats"),
+        InlineKeyboardButton(t(lang, "menu_help"), callback_data="menu:help"),
+    ])
     if is_admin:
-        help_row.append(InlineKeyboardButton(t(lang, "menu_admin"), callback_data="menu:admin"))
-    rows.append(help_row)
+        rows.append([InlineKeyboardButton(t(lang, "menu_admin"), callback_data="menu:admin")])
     return InlineKeyboardMarkup(rows)
 
 

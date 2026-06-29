@@ -138,6 +138,13 @@ async def cmd_menu(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await send_main_menu(update, context)
 
 
+async def show_about(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    user = await get_user(update.effective_user.id)
+    lang = (user or {}).get("lang") or "ru"
+    kb = InlineKeyboardMarkup([[home_btn(lang)]])
+    await nav(update, context, t(lang, "about_text"), kb)
+
+
 async def on_home(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await send_main_menu(update, context)
 
@@ -146,4 +153,5 @@ def get_menu_handlers() -> list:
     return [
         CommandHandler("menu", cmd_menu),
         CallbackQueryHandler(on_home, pattern=r"^menu:home$"),
+        CallbackQueryHandler(show_about, pattern=r"^menu:about$"),
     ]
