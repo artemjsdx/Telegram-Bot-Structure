@@ -24,7 +24,7 @@ import logging
 import random
 import time
 
-from core import tg_client
+from core import tg_client, tg_html
 from core.ai_client import resolve_creds_from_agent
 from core.clock import current_time_line
 from core.formatter import get_system_prompt
@@ -89,15 +89,20 @@ async def _ai_post(agent: dict, user_content: str, limit: int = TEXT_LIMIT) -> s
 
 
 async def _send_html(client, target: int, text: str):
-    """Send text to a target as HTML, falling back to plain on a parse error."""
+    """
+    Send to a target with our HTML→entities parser (adds spoiler support that
+    Telethon's html parse_mode lacks); fall back to plain text on any failure.
+    """
+    text = sanitize_html(text)
     try:
-        return await client.send_message(target, text, parse_mode="html",
+        clean, entities = tg_html.parse(text)
+        return await client.send_message(target, clean, formatting_entities=entities,
                                          link_preview=False)
     except Exception as e:  # noqa: BLE001
-        logger.warning("autopost html send failed (%s); retry plain", e)
+        logger.warning("autopost entity send failed (%s); retry plain", e)
         import re
-        plain = re.sub(r"<[^>]+>", "", text)
-        return await client.send_message(target, ihtml.unescape(plain), link_preview=False)
+        plain = ihtml.unescape(re.sub(r"<[^>]+>", "", text))
+        return await client.send_message(target, plain, link_preview=False)
 
 
 class AutopostManager:
