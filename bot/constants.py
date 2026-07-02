@@ -93,4 +93,6 @@ PAGE_SIZE_LOGS = 15
     AP_ADD_TARGET,
     AP_PROMPT,
     AP_PRESET_NEW,
-) = range(200, 209)
+    AP_SET_VALUE,
+    AP_PRESET_FWD,
+) = range(200, 211)

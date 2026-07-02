@@ -22,6 +22,7 @@ from config import DEFAULT_LANG
 from constants import (
     AP_API_ID, AP_API_HASH, AP_PHONE, AP_CODE, AP_2FA,
     AP_ADD_SOURCE, AP_ADD_TARGET, AP_PROMPT, AP_PRESET_NEW,
+    AP_SET_VALUE, AP_PRESET_FWD,
 )
 from core import tg_client
 from db.storage import (
@@ -57,6 +58,17 @@ _T = {
         "ap_mode_digest": "🧵 Тема-дайджест",
         "ap_state_on": "🟢 включён",
         "ap_state_off": "🔴 выключен",
+        # mode detail screen
+        "ap_mode_detail_title": "🔀 <b>Режим автопостинга</b>\n\nТекущий: <b>{current}</b>\n\n<blockquote>{desc}</blockquote>",
+        "ap_mode_forward_desc": "Простая пересылка постов из источника в цель без изменений. Самый безопасный и быстрый режим.",
+        "ap_mode_structure_desc": "ИИ переписывает пост в заданном стиле, сохраняя смысл. Использует промпт автопостинга.",
+        "ap_mode_digest_desc": "Объединяет несколько постов в один тематический дайджест. Полезно для новостных каналов.",
+        # toggle detail screen
+        "ap_toggle_detail_title": "{icon} <b>{label}</b>\n\n<blockquote>{desc}</blockquote>",
+        "ap_toggle_on_desc": "Бот работает: проверяет источники и публикует посты согласно настройкам.",
+        "ap_toggle_off_desc": "Бот на паузе: не проверяет источники и не публикует посты. Все настройки сохраняются.",
+        "ap_btn_toggle_on": "🟢 Включить",
+        "ap_btn_toggle_off": "🔴 Выключить",
         "ap_no_account": "не привязан",
         "ap_btn_account": "👤 Аккаунт",
         "ap_btn_mode": "🔀 Режим: {mode}",
@@ -153,6 +165,20 @@ _T = {
         "ap_lib_new_ask": "Пришлите название и текст пресета одним сообщением (первая строка — название):",
         "ap_lib_applied": "✅ Пресет применён.",
         "ap_lib_empty": "Пока нет сохранённых пресетов.",
+        "ap_lib_desc": "<blockquote>Библиотека хранит готовые промпты для автопостинга. Нажмите на пресет чтобы применить, 🗑 чтобы удалить. Можно создать свой или сгенерировать из пересланных постов.</blockquote>",
+        "ap_lib_from_posts": "📨 Создать из постов",
+        "ap_from_posts_title": "📨 <b>Создать промпт из постов</b>\n\n<blockquote>{desc}</blockquote>",
+        "ap_from_posts_desc": "Перешлите сюда 2-10 постов из канала, стиль которого хотите скопировать. Бот соберёт их текст и создаст шаблон промпта. Нажмите «Готово» когда закончите.",
+        "ap_from_posts_count": "📥 Собрано постов: <b>{n}</b>",
+        "ap_from_posts_done": "✅ Готово",
+        "ap_from_posts_cancel": "❌ Отмена",
+        "ap_from_posts_need_more": "⚠️ Нужно минимум 2 поста для анализа стиля.",
+        "ap_from_posts_preview": "📨 <b>Предпросмотр промпта</b>\n\n<blockquote expandable>{body}</blockquote>\n\nСохранить как пресет в библиотеку?",
+        "ap_from_posts_save": "💾 Сохранить",
+        "ap_from_posts_edit": "✏️ Редактировать",
+        "ap_from_posts_name_ask": "Введите название для пресета (или нажмите «Отмена»):",
+        "ap_from_posts_saved": "✅ Пресет «{name}» сохранён в библиотеку.",
+        "ap_prompt_desc": "<blockquote>Промпт объясняет ИИ, в каком стиле переписывать посты. Опишите желаемый тон, формат, длину, особенности. Используйте библиотеку для быстрой смены стилей.</blockquote>",
         "ap_saved": "✅ Сохранено.",
     },
     "en": {},  # falls back to ru for this subsystem
@@ -171,22 +197,50 @@ def T(lang: str, key: str, **kw) -> str:
 _MODE_LABEL = {"forward": "ap_mode_forward", "structure": "ap_mode_structure", "digest": "ap_mode_digest"}
 _MODE_ORDER = ["forward", "structure", "digest"]
 
-_STEPS = {
-    "poll_interval": [30, 60, 120, 300, 600],
-    "jitter": [0, 5, 15, 30, 60],
-    "max_per_window": [0, 5, 10, 20, 50],
-    "window_sec": [600, 1800, 3600, 7200, 86400],
-    "digest_size": [30, 50, 100, 200, 300],
-    "edit_last_n": [0, 5, 10, 20],
+_SET_META = {
+    "poll_interval": {
+        "title":   "⏱ Интервал опроса",
+        "desc":    "Как часто бот проверяет новые посты в источниках.",
+        "unit":    "сек",
+        "presets": [30, 60, 120, 300, 600, 1800],
+        "default": 60,
+    },
+    "jitter": {
+        "title":   "🎲 Разброс (джиттер)",
+        "desc":    "Случайная добавка к интервалу — имитация поведения человека.",
+        "unit":    "сек",
+        "presets": [0, 5, 15, 30, 60, 120],
+        "default": 15,
+    },
+    "max_per_window": {
+        "title":   "🚧 Лимит постов за окно",
+        "desc":    "Максимум постов за указанный период. 0 = без ограничений.",
+        "unit":    "постов",
+        "presets": [0, 3, 5, 10, 20, 50],
+        "default": 10,
+    },
+    "window_sec": {
+        "title":   "🪟 Окно лимита",
+        "desc":    "Период, за который считается лимит. Меньше = строже контроль.",
+        "unit":    "сек",
+        "presets": [600, 1800, 3600, 7200, 14400, 86400],
+        "default": 3600,
+    },
+    "digest_size": {
+        "title":   "🧵 Размер дайджеста",
+        "desc":    "Сколько сообщений объединять в один дайджест-пост.",
+        "unit":    "сообщений",
+        "presets": [5, 10, 20, 30, 50, 100],
+        "default": 30,
+    },
+    "edit_last_n": {
+        "title":   "🧠 Память постов",
+        "desc":    "Сколько последних постов держать в контексте (0 = не помнить).",
+        "unit":    "постов",
+        "presets": [0, 3, 5, 10, 20, 50],
+        "default": 10,
+    },
 }
-
-
-def _cycle(field: str, current) -> int:
-    steps = _STEPS[field]
-    try:
-        return steps[(steps.index(int(current)) + 1) % len(steps)]
-    except (ValueError, TypeError):
-        return steps[0]
 
 
 # ═══════════ config screen ═══════════
@@ -213,7 +267,7 @@ async def _render_config(update, context, aid: int) -> None:
     rows = [
         [InlineKeyboardButton(T(lang, "ap_btn_account"), callback_data=f"ap:acc:{aid}"),
          InlineKeyboardButton(T(lang, "ap_btn_mode", mode=T(lang, _MODE_LABEL[mode])),
-                              callback_data=f"ap:mode:{aid}")],
+                              callback_data=f"ap:modedet:{aid}")],
         [InlineKeyboardButton(T(lang, "ap_btn_sources", n=len(sources)), callback_data=f"ap:srcs:{aid}"),
          InlineKeyboardButton(T(lang, "ap_btn_targets", n=len(targets)), callback_data=f"ap:tgts:{aid}")],
         [InlineKeyboardButton(T(lang, "ap_btn_settings"), callback_data=f"ap:set:{aid}")],
@@ -221,9 +275,9 @@ async def _render_config(update, context, aid: int) -> None:
     ]
     can_enable = account and sources and targets
     if enabled:
-        rows.append([InlineKeyboardButton(T(lang, "ap_btn_disable"), callback_data=f"ap:toggle:{aid}")])
+        rows.append([InlineKeyboardButton(T(lang, "ap_btn_disable"), callback_data=f"ap:toggdet:{aid}")])
     elif can_enable:
-        rows.append([InlineKeyboardButton(T(lang, "ap_btn_enable"), callback_data=f"ap:toggle:{aid}")])
+        rows.append([InlineKeyboardButton(T(lang, "ap_btn_enable"), callback_data=f"ap:toggdet:{aid}")])
     rows.append([back_btn(f"agent:view:{aid}", lang), home_btn(lang)])
     await _show(update, context, text, InlineKeyboardMarkup(rows))
 
@@ -245,32 +299,73 @@ async def open_config(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
     await _render_config(update, context, int(q.data.split(":")[2]))
 
 
-async def cycle_mode(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+async def show_mode_detail(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Sub-screen: mode picker with descriptions."""
     q = update.callback_query
     await q.answer()
     aid = int(q.data.split(":")[2])
     cfg = await get_config_for_agent(aid)
+    lang = _lang(await get_user(q.from_user.id))
+    cur = (cfg.get("mode") if cfg else "forward") or "forward"
+    desc_key = {"forward": "ap_mode_forward_desc", "structure": "ap_mode_structure_desc", "digest": "ap_mode_digest_desc"}[cur]
+    text = T(lang, "ap_mode_detail_title",
+             current=T(lang, _MODE_LABEL[cur]),
+             desc=T(lang, desc_key))
+    rows = []
+    for m in _MODE_ORDER:
+        label = f"{'✅ ' if m == cur else ''}{T(lang, _MODE_LABEL[m])}"
+        rows.append([InlineKeyboardButton(label, callback_data=f"ap:modeset:{m}:{aid}")])
+    rows.append([back_btn(f"ap:open:{aid}", lang)])
+    await _show(update, context, text, InlineKeyboardMarkup(rows))
+
+
+async def set_mode(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Apply selected mode and return to config screen."""
+    q = update.callback_query
+    await q.answer()
+    _, _, mode, aid = q.data.split(":")
+    aid = int(aid)
+    cfg = await get_config_for_agent(aid)
     if cfg:
-        cur = cfg.get("mode") or "forward"
-        nxt = _MODE_ORDER[(_MODE_ORDER.index(cur) + 1) % len(_MODE_ORDER)]
-        await update_config(cfg["config_id"], mode=nxt)
+        await update_config(cfg["config_id"], mode=mode)
     await _render_config(update, context, aid)
 
 
-async def toggle_enabled(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+async def show_toggle_detail(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Sub-screen: enable/disable with description."""
     q = update.callback_query
+    await q.answer()
     aid = int(q.data.split(":")[2])
     cfg = await get_config_for_agent(aid)
-    if not cfg:
-        await q.answer()
-        return
-    if not cfg.get("enabled"):
-        account = await get_account(cfg["account_id"]) if cfg.get("account_id") else None
-        if not (account and await get_sources(cfg["config_id"]) and await get_targets(cfg["config_id"])):
-            await q.answer(T(_lang(await get_user(q.from_user.id)), "ap_enable_blocked"), show_alert=True)
-            return
+    lang = _lang(await get_user(q.from_user.id))
+    enabled = bool(cfg.get("enabled")) if cfg else False
+    icon = "🟢" if enabled else "🔴"
+    label = T(lang, "ap_state_on" if enabled else "ap_state_off")
+    desc = T(lang, "ap_toggle_on_desc" if enabled else "ap_toggle_off_desc")
+    text = T(lang, "ap_toggle_detail_title", icon=icon, label=label, desc=desc)
+    rows = []
+    if enabled:
+        rows.append([InlineKeyboardButton(T(lang, "ap_btn_toggle_off"), callback_data=f"ap:toggset:0:{aid}")])
+    else:
+        account = await get_account(cfg["account_id"]) if cfg and cfg.get("account_id") else None
+        can_enable = account and await get_sources(cfg["config_id"]) and await get_targets(cfg["config_id"])
+        if can_enable:
+            rows.append([InlineKeyboardButton(T(lang, "ap_btn_toggle_on"), callback_data=f"ap:toggset:1:{aid}")])
+        else:
+            rows.append([InlineKeyboardButton(f"⚠️ {T(lang, 'ap_enable_blocked')}", callback_data="noop")])
+    rows.append([back_btn(f"ap:open:{aid}", lang)])
+    await _show(update, context, text, InlineKeyboardMarkup(rows))
+
+
+async def set_toggle(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Apply toggle change and return to config screen."""
+    q = update.callback_query
     await q.answer()
-    await update_config(cfg["config_id"], enabled=0 if cfg.get("enabled") else 1)
+    _, _, val, aid = q.data.split(":")
+    aid, enabled = int(aid), int(val)
+    cfg = await get_config_for_agent(aid)
+    if cfg:
+        await update_config(cfg["config_id"], enabled=enabled)
     await _render_config(update, context, aid)
 
 
@@ -579,6 +674,7 @@ async def _add_got(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
 
 # ═══════════ settings ═══════════
 async def _render_settings(update, context, aid: int) -> None:
+    """Main settings list — each button opens a detail sub-screen."""
     lang = _lang(await get_user(update.effective_user.id))
     cfg = await get_config_for_agent(aid)
     text = T(lang, "ap_set_title",
@@ -587,17 +683,17 @@ async def _render_settings(update, context, aid: int) -> None:
              digest=cfg.get("digest_size"), editn=cfg.get("edit_last_n"))
     rows = [
         [InlineKeyboardButton(T(lang, "ap_set_interval", n=cfg.get("poll_interval")),
-                              callback_data=f"ap:cyc:poll_interval:{aid}")],
+                              callback_data=f"ap:setdet:poll_interval:{aid}")],
         [InlineKeyboardButton(T(lang, "ap_set_jitter", n=cfg.get("jitter")),
-                              callback_data=f"ap:cyc:jitter:{aid}")],
+                              callback_data=f"ap:setdet:jitter:{aid}")],
         [InlineKeyboardButton(T(lang, "ap_set_cap", n=cfg.get("max_per_window")),
-                              callback_data=f"ap:cyc:max_per_window:{aid}")],
+                              callback_data=f"ap:setdet:max_per_window:{aid}")],
         [InlineKeyboardButton(T(lang, "ap_set_window", n=cfg.get("window_sec")),
-                              callback_data=f"ap:cyc:window_sec:{aid}")],
+                              callback_data=f"ap:setdet:window_sec:{aid}")],
         [InlineKeyboardButton(T(lang, "ap_set_digest", n=cfg.get("digest_size")),
-                              callback_data=f"ap:cyc:digest_size:{aid}")],
+                              callback_data=f"ap:setdet:digest_size:{aid}")],
         [InlineKeyboardButton(T(lang, "ap_set_editn", n=cfg.get("edit_last_n")),
-                              callback_data=f"ap:cyc:edit_last_n:{aid}")],
+                              callback_data=f"ap:setdet:edit_last_n:{aid}")],
         [back_btn(f"ap:open:{aid}", lang), home_btn(lang)],
     ]
     await _show(update, context, text, InlineKeyboardMarkup(rows))
@@ -608,15 +704,97 @@ async def show_settings(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     await _render_settings(update, context, int(update.callback_query.data.split(":")[2]))
 
 
-async def cycle_setting(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+async def _render_setting_detail(update, context, aid: int, field: str) -> None:
+    """Sub-screen: description, presets, custom value for one numeric setting."""
+    lang = _lang(await get_user(update.effective_user.id))
+    cfg = await get_config_for_agent(aid)
+    meta = _SET_META[field]
+    cur = int(cfg.get(field) or meta["default"])
+    text = (
+        f"{meta['title']}\n\n"
+        f"{meta['desc']}\n"
+        f"<blockquote>Текущее: <b>{cur} {meta['unit']}</b></blockquote>"
+    )
+    rows = []
+    for p in meta["presets"]:
+        label = f"{'✅ ' if p == cur else ''}{p} {meta['unit']}"
+        rows.append([InlineKeyboardButton(
+            label, callback_data=f"ap:pset:{field}:{p}:{aid}")])
+    rows.append([InlineKeyboardButton(
+        f"✏️ Своё значение…", callback_data=f"ap:custom:{field}:{aid}")])
+    rows.append([back_btn(f"ap:set:{aid}", lang)])
+    await _show(update, context, text, InlineKeyboardMarkup(rows))
+
+
+async def open_setting_detail(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     q = update.callback_query
     await q.answer()
     _, _, field, aid = q.data.split(":")
-    aid = int(aid)
+    await _render_setting_detail(update, context, int(aid), field)
+
+
+async def preset_setting(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """User tapped a preset value — save it and re-render the detail screen."""
+    q = update.callback_query
+    await q.answer()
+    _, _, field, val, aid = q.data.split(":")
+    aid, val = int(aid), int(val)
     cfg = await get_config_for_agent(aid)
-    if cfg and field in _STEPS:
-        await update_config(cfg["config_id"], **{field: _cycle(field, cfg.get(field))})
-    await _render_settings(update, context, aid)
+    if cfg:
+        await update_config(cfg["config_id"], **{field: val})
+    await _render_setting_detail(update, context, aid, field)
+
+
+async def ask_custom_value(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """Entry point for custom-value input conversation."""
+    q = update.callback_query
+    _, _, field, aid = q.data.split(":")
+    aid = int(aid)
+    lang = _lang(await get_user(q.from_user.id))
+    meta = _SET_META[field]
+    context.user_data["ap_aid"] = aid
+    context.user_data["ap_field"] = field
+    context.user_data["ap_lang"] = lang
+    await q.edit_message_text(
+        f"{meta['title']}\n\n{meta['desc']}\n\n"
+        f"<blockquote>Введите число ({meta['unit']}):</blockquote>",
+        parse_mode=ParseMode.HTML,
+        reply_markup=InlineKeyboardMarkup([[back_btn(f"ap:setdet:{field}:{aid}", lang)]]))
+    return AP_SET_VALUE
+
+
+async def got_custom_value(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """Validate and save the custom numeric value."""
+    aid = context.user_data.get("ap_aid")
+    field = context.user_data.get("ap_field")
+    raw = (update.message.text or "").strip()
+    lang = context.user_data.get("ap_lang", DEFAULT_LANG)
+    meta = _SET_META.get(field, {})
+    try:
+        val = int(raw)
+        if val < 0:
+            raise ValueError
+    except ValueError:
+        await update.message.reply_html(
+            f"❌ Введите целое число ({meta.get('unit', '')}). Попробуйте ещё раз:",
+            reply_markup=InlineKeyboardMarkup([[back_btn(f"ap:setdet:{field}:{aid}", lang)]]))
+        return AP_SET_VALUE
+    cfg = await get_config_for_agent(aid)
+    if cfg:
+        await update_config(cfg["config_id"], **{field: val})
+    await _render_setting_detail(update, context, aid, field)
+    return ConversationHandler.END
+
+
+async def _cancel_set_value(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """Back button inside custom-value input — return to detail screen."""
+    q = update.callback_query
+    if q:
+        await q.answer()
+        parts = q.data.split(":")
+        if len(parts) >= 4:
+            await _render_setting_detail(update, context, int(parts[3]), parts[2])
+    return ConversationHandler.END
 
 
 # ═══════════ prompt + library ═══════════
@@ -631,7 +809,9 @@ async def _render_prompt(update, context, aid: int) -> None:
          InlineKeyboardButton(T(lang, "ap_prompt_lib"), callback_data=f"ap:plib:{aid}")],
         [back_btn(f"ap:open:{aid}", lang), home_btn(lang)],
     ]
-    await _show(update, context, T(lang, "ap_prompt_title", body=disp), InlineKeyboardMarkup(rows))
+    await _show(update, context,
+                T(lang, "ap_prompt_title", body=disp) + "\n" + T(lang, "ap_prompt_desc"),
+                InlineKeyboardMarkup(rows))
 
 
 async def show_prompt(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -669,8 +849,11 @@ async def _render_library(update, context, aid: int) -> None:
              InlineKeyboardButton("🗑", callback_data=f"ap:pdel:{p['preset_id']}:{aid}")]
             for p in presets]
     rows.append([InlineKeyboardButton(T(lang, "ap_lib_new"), callback_data=f"ap:pnew:{aid}")])
+    rows.append([InlineKeyboardButton(T(lang, "ap_lib_from_posts"), callback_data=f"ap:fromposts:{aid}")])
     rows.append([back_btn(f"ap:prompt:{aid}", lang), home_btn(lang)])
-    body = T(lang, "ap_lib_title") if presets else (T(lang, "ap_lib_title") + "\n\n" + T(lang, "ap_lib_empty"))
+    body = T(lang, "ap_lib_title") + "\n" + T(lang, "ap_lib_desc")
+    if not presets:
+        body += "\n" + T(lang, "ap_lib_empty")
     await _show(update, context, body, InlineKeyboardMarkup(rows))
 
 
@@ -720,6 +903,109 @@ async def preset_new_got(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     return ConversationHandler.END
 
 
+# ───── create prompt from forwarded posts ─────
+
+async def from_posts_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """Entry: ask user to forward posts for style analysis."""
+    q = update.callback_query
+    await q.answer()
+    aid = int(q.data.split(":")[2])
+    lang = _lang(await get_user(q.from_user.id))
+    context.user_data["ap_aid"] = aid
+    context.user_data["ap_lang"] = lang
+    context.user_data["ap_fwd_posts"] = []
+    text = T(lang, "ap_from_posts_title", desc=T(lang, "ap_from_posts_desc"))
+    kb = InlineKeyboardMarkup([
+        [InlineKeyboardButton(T(lang, "ap_from_posts_done"), callback_data=f"ap:fwdone:{aid}")],
+        [InlineKeyboardButton(T(lang, "ap_from_posts_cancel"), callback_data=f"ap:plib:{aid}")],
+    ])
+    await q.edit_message_text(text, parse_mode=ParseMode.HTML, reply_markup=kb)
+    return AP_PRESET_FWD
+
+
+async def from_posts_got(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """Collect each forwarded post's text."""
+    lang = context.user_data.get("ap_lang", DEFAULT_LANG)
+    msg = update.message
+    text = msg.text or msg.caption or ""
+    if not text.strip():
+        await msg.reply_html("⚠️ Перешлите текстовый пост (не фото/видео без подписи).")
+        return AP_PRESET_FWD
+    posts = context.user_data.get("ap_fwd_posts", [])
+    posts.append(text.strip())
+    context.user_data["ap_fwd_posts"] = posts
+    await msg.reply_html(T(lang, "ap_from_posts_count", n=len(posts)))
+    return AP_PRESET_FWD
+
+
+async def from_posts_done(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """Generate prompt from collected posts, show preview."""
+    q = update.callback_query
+    await q.answer()
+    lang = context.user_data.get("ap_lang", DEFAULT_LANG)
+    aid = context.user_data.get("ap_aid")
+    posts = context.user_data.get("ap_fwd_posts", [])
+    if len(posts) < 2:
+        await q.answer(T(lang, "ap_from_posts_need_more"), show_alert=True)
+        return AP_PRESET_FWD
+    # Build prompt: list each post, add instruction
+    import html as ihtml
+    sample = "\n\n---\n\n".join(
+        f"Пост {i+1}:\n{p[:500]}" for i, p in enumerate(posts[:10]))
+    generated = (
+        f"Перепиши пост в следующем стиле. Сохрани смысл, но измени форму:\n\n"
+        f"<examples>\n{sample}\n</examples>\n\n"
+        f"Требования:\n"
+        f"- Тон: как в примерах\n"
+        f"- Длина: как в примерах\n"
+        f"- Формат: Markdown/HTML как в примерах\n"
+        f"- Эмодзи: использовать если есть в примерах"
+    )
+    context.user_data["ap_gen_prompt"] = generated
+    text = T(lang, "ap_from_posts_preview", body=ihtml.escape(generated[:800]))
+    kb = InlineKeyboardMarkup([
+        [InlineKeyboardButton(T(lang, "ap_from_posts_save"), callback_data=f"ap:fwdsave:{aid}"),
+         InlineKeyboardButton(T(lang, "ap_from_posts_edit"), callback_data=f"ap:fwdedit:{aid}")],
+        [InlineKeyboardButton(T(lang, "ap_from_posts_cancel"), callback_data=f"ap:plib:{aid}")],
+    ])
+    await q.edit_message_text(text, parse_mode=ParseMode.HTML, reply_markup=kb)
+    return ConversationHandler.END
+
+
+async def from_posts_save(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Save generated prompt as preset."""
+    q = update.callback_query
+    lang = context.user_data.get("ap_lang", DEFAULT_LANG)
+    aid = int(q.data.split(":")[2])
+    prompt = context.user_data.get("ap_gen_prompt", "")
+    name = f"Из постов {len(context.user_data.get('ap_fwd_posts', []))} шт."
+    await create_autopost_preset(q.from_user.id, name, prompt)
+    await q.answer(T(lang, "ap_from_posts_saved", name=name))
+    await _render_library(update, context, aid)
+
+
+async def from_posts_edit(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Apply generated prompt to config so user can edit via normal prompt flow."""
+    q = update.callback_query
+    await q.answer()
+    aid = int(q.data.split(":")[2])
+    prompt = context.user_data.get("ap_gen_prompt", "")
+    cfg = await get_config_for_agent(aid)
+    if cfg and prompt:
+        await update_config(cfg["config_id"], prompt=prompt)
+    await _render_prompt(update, context, aid)
+
+
+async def _cancel_from_posts(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """Cancel the from-posts flow, return to library."""
+    q = update.callback_query
+    if q:
+        await q.answer()
+        aid = int(q.data.split(":")[2])
+        await _render_library(update, context, aid)
+    return ConversationHandler.END
+
+
 async def _cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     return ConversationHandler.END
 
@@ -747,7 +1033,9 @@ def get_autopost_handlers() -> list:
     add_source_conv = ConversationHandler(
         entry_points=[CallbackQueryHandler(add_source_start, pattern=r"^ap:addsrc:\d+$")],
         states={AP_ADD_SOURCE: [
-            CallbackQueryHandler(show_sources, pattern=r"^ap:srcs:\d+$"),
+            CallbackQueryHandler(set_mode, pattern=r"^ap:modeset:\w+:\d+$"),
+        CallbackQueryHandler(set_toggle, pattern=r"^ap:toggset:\d+:\d+$"),
+        CallbackQueryHandler(show_sources, pattern=r"^ap:srcs:\d+$"),
             MessageHandler((filters.TEXT | filters.FORWARDED) & ~filters.COMMAND, _add_got)]},
         fallbacks=[CommandHandler("cancel", _cancel),
                    CallbackQueryHandler(show_sources, pattern=r"^ap:srcs:\d+$")],
@@ -780,21 +1068,45 @@ def get_autopost_handlers() -> list:
                    CallbackQueryHandler(show_library, pattern=r"^ap:plib:\d+$")],
         allow_reentry=True, per_message=False, name="ap_preset", persistent=False,
     )
+    settings_custom_conv = ConversationHandler(
+        entry_points=[CallbackQueryHandler(ask_custom_value, pattern=r"^ap:custom:[a-z_]+:\d+$")],
+        states={AP_SET_VALUE: [
+            CallbackQueryHandler(_cancel_set_value, pattern=r"^ap:setdet:[a-z_]+:\d+$"),
+            MessageHandler(filters.TEXT & ~filters.COMMAND, got_custom_value)]},
+        fallbacks=[CommandHandler("cancel", _cancel),
+                   CallbackQueryHandler(_cancel_set_value, pattern=r"^ap:setdet:[a-z_]+:\d+$")],
+        allow_reentry=True, per_message=False, name="ap_customval", persistent=False,
+    )
+    from_posts_conv = ConversationHandler(
+        entry_points=[CallbackQueryHandler(from_posts_start, pattern=r"^ap:fromposts:\d+$")],
+        states={AP_PRESET_FWD: [
+            CallbackQueryHandler(from_posts_done, pattern=r"^ap:fwdone:\d+$"),
+            CallbackQueryHandler(_cancel_from_posts, pattern=r"^ap:plib:\d+$"),
+            MessageHandler((filters.TEXT | filters.FORWARDED) & ~filters.COMMAND, from_posts_got)]},
+        fallbacks=[CommandHandler("cancel", _cancel),
+                   CallbackQueryHandler(_cancel_from_posts, pattern=r"^ap:plib:\d+$")],
+        allow_reentry=True, per_message=False, name="ap_fromposts", persistent=False,
+    )
     return [
-        login_conv, add_source_conv, add_target_conv, prompt_conv, preset_conv,
+        login_conv, add_source_conv, add_target_conv, prompt_conv, preset_conv, settings_custom_conv, from_posts_conv,
         CallbackQueryHandler(open_config, pattern=r"^ap:open:\d+$"),
         CallbackQueryHandler(show_account, pattern=r"^ap:acc:\d+$"),
         CallbackQueryHandler(account_delete, pattern=r"^ap:accdel:\d+$"),
-        CallbackQueryHandler(cycle_mode, pattern=r"^ap:mode:\d+$"),
-        CallbackQueryHandler(toggle_enabled, pattern=r"^ap:toggle:\d+$"),
+        CallbackQueryHandler(show_mode_detail, pattern=r"^ap:modedet:\d+$"),
+        CallbackQueryHandler(show_toggle_detail, pattern=r"^ap:toggdet:\d+$"),
+        CallbackQueryHandler(set_mode, pattern=r"^ap:modeset:\w+:\d+$"),
+        CallbackQueryHandler(set_toggle, pattern=r"^ap:toggset:\d+:\d+$"),
         CallbackQueryHandler(show_sources, pattern=r"^ap:srcs:\d+$"),
         CallbackQueryHandler(show_targets, pattern=r"^ap:tgts:\d+$"),
         CallbackQueryHandler(del_source, pattern=r"^ap:delsrc:\d+:\d+$"),
         CallbackQueryHandler(del_target, pattern=r"^ap:deltgt:\d+:\d+$"),
         CallbackQueryHandler(show_settings, pattern=r"^ap:set:\d+$"),
-        CallbackQueryHandler(cycle_setting, pattern=r"^ap:cyc:[a-z_]+:\d+$"),
+        CallbackQueryHandler(open_setting_detail, pattern=r"^ap:setdet:[a-z_]+:\d+$"),
+        CallbackQueryHandler(preset_setting, pattern=r"^ap:pset:[a-z_]+:\d+:\d+$"),
         CallbackQueryHandler(show_prompt, pattern=r"^ap:prompt:\d+$"),
         CallbackQueryHandler(show_library, pattern=r"^ap:plib:\d+$"),
+        CallbackQueryHandler(from_posts_save, pattern=r"^ap:fwdsave:\d+$"),
+        CallbackQueryHandler(from_posts_edit, pattern=r"^ap:fwdedit:\d+$"),
         CallbackQueryHandler(library_use, pattern=r"^ap:puse:\d+:\d+$"),
         CallbackQueryHandler(library_del, pattern=r"^ap:pdel:\d+:\d+$"),
     ]
